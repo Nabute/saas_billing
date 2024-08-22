@@ -1,187 +1,153 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
-import { Subscription } from '../entities/subscription.entity';
-import { AssignSubscriptionPlanDto, CreateSubscriptionDto, UpdateSubscriptionDto } from '../dtos/subscription.dto';
-import { Customer } from '../entities/customer.entity';
-import { SubscriptionPlan } from '../entities/subscription-plan.entity';
+import { Repository } from 'typeorm';
+import { CustomerSubscription } from '../entities/customer.entity';
+import { User } from '../entities/user.entity';
+import { SubscriptionPlan } from '../entities/subscription.entity';
 import { DataLookup } from '../entities/data-lookup.entity';
-import { GenericService } from './base.service';
-import { SubscriptionStatus } from 'src/utils/enums';
+import { CreateSubscriptionDto, CreateSubscriptionPlanDto, UpdateSubscriptionPlanDto, UpdateSubscriptionStatusDto } from '../dtos/subscription.dto';
 
 @Injectable()
-export class SubscriptionService extends GenericService<Subscription> {
+export class SubscriptionService {
     constructor(
-        @InjectRepository(Subscription)
-        private readonly subscriptionRepository: Repository<Subscription>,
-        @InjectRepository(Customer)
-        private readonly customerRepository: Repository<Customer>,
+        @InjectRepository(CustomerSubscription)
+        private readonly customerSubscriptionRepository: Repository<CustomerSubscription>,
+        @InjectRepository(User)
+        private readonly userRepository: Repository<User>,
         @InjectRepository(SubscriptionPlan)
         private readonly subscriptionPlanRepository: Repository<SubscriptionPlan>,
         @InjectRepository(DataLookup)
         private readonly dataLookupRepository: Repository<DataLookup>,
-        dataSource: DataSource,
-    ) {
-        super(Subscription, dataSource)
-    }
+    ) { }
 
-    async assignSubscriptionPlan(
-        assignDto: AssignSubscriptionPlanDto,
-    ): Promise<Customer> {
-        const queryRunner = this.dataSource.createQueryRunner();
+    async createCustomerSubscription(createSubscriptionDto: CreateSubscriptionDto): Promise<CustomerSubscription> {
+        const { userId, subscriptionPlanId, subscriptionStatusId, startDate } = createSubscriptionDto;
 
-        await queryRunner.connect();
-        await queryRunner.startTransaction();
-
-        try {
-            const { customerId, subscriptionPlanId } = assignDto;
-
-            // Fetch customer
-            const customer = await queryRunner.manager.findOne(Customer, {
-                where: { id: customerId },
-            });
-            if (!customer) {
-                throw new NotFoundException(`Customer with id ${customerId} not found`);
-            }
-
-            // Fetch subscription plan
-            const subscriptionPlan = await queryRunner.manager.findOne(SubscriptionPlan, {
-                where: { id: subscriptionPlanId },
-            });
-            if (!subscriptionPlan) {
-                throw new NotFoundException(`Subscription Plan with id ${subscriptionPlanId} not found`);
-            }
-
-            // Fetch subscription status
-            const defaultSubscriptionStatus = await queryRunner.manager.findOne(DataLookup, {
-                where: { type: SubscriptionStatus.TYPE, is_default: true },
-            });
-            if (!defaultSubscriptionStatus) {
-                throw new NotFoundException(`Unable to find the default subscription status.`);
-            }
-
-            // Update customer's subscription plan and status
-            customer.subscriptionPlan = subscriptionPlan;
-            customer.subscriptionStatus = defaultSubscriptionStatus;
-
-            const updatedCustomer = await queryRunner.manager.save(customer);
-
-            await queryRunner.commitTransaction();
-            return updatedCustomer;
-        } catch (error) {
-            await queryRunner.rollbackTransaction();
-            throw error;
-        } finally {
-            await queryRunner.release();
+        const user = await this.userRepository.findOneBy({ id: userId });
+        if (!user) {
+            throw new NotFoundException(`User with ID ${userId} not found`);
         }
-    }
 
-    async create(createSubscriptionDto: CreateSubscriptionDto): Promise<Subscription> {
-        const queryRunner = this.dataSource.createQueryRunner();
-
-        await queryRunner.connect();
-        await queryRunner.startTransaction();
-
-        try {
-            const { customerId, planId, startDate, endDate, statusId } = createSubscriptionDto;
-
-            const customer = await queryRunner.manager.findOne(Customer, { where: { id: customerId } });
-            if (!customer) {
-                throw new NotFoundException(`Customer with id ${customerId} not found`);
-            }
-
-            const plan = await queryRunner.manager.findOne(SubscriptionPlan, { where: { id: planId } });
-            if (!plan) {
-                throw new NotFoundException(`Subscription Plan with id ${planId} not found`);
-            }
-
-            const status = await queryRunner.manager.findOne(DataLookup, { where: { id: statusId } });
-            if (!status) {
-                throw new NotFoundException(`Status with id ${statusId} not found`);
-            }
-
-            const subscription = this.subscriptionRepository.create({
-                customer,
-                plan,
-                startDate,
-                endDate,
-                status,
-            });
-
-            const savedSubscription = await queryRunner.manager.save(subscription);
-
-            await queryRunner.commitTransaction();
-
-            return savedSubscription;
-        } catch (error) {
-            await queryRunner.rollbackTransaction();
-            throw error;
-        } finally {
-            await queryRunner.release();
+        const subscriptionPlan = await this.subscriptionPlanRepository.findOneBy({ id: subscriptionPlanId });
+        if (!subscriptionPlan) {
+            throw new NotFoundException(`Subscription plan with ID ${subscriptionPlanId} not found`);
         }
-    }
 
-    async update(id: string, updateDto: UpdateSubscriptionDto): Promise<Subscription> {
-        const queryRunner = this.dataSource.createQueryRunner();
-
-        await queryRunner.connect();
-        await queryRunner.startTransaction();
-
-        try {
-            const subscription = await queryRunner.manager.findOne(Subscription, {
-                where: { id },
-                relations: ['customer', 'plan', 'status'],
-            });
-            if (!subscription) {
-                throw new NotFoundException(`Subscription with id ${id} not found`);
-            }
-
-            const customer = await queryRunner.manager.findOne(Customer, { where: { id: updateDto.customerId } });
-            if (!customer) {
-                throw new NotFoundException(`Customer with id ${updateDto.customerId} not found`);
-            }
-
-            const plan = await queryRunner.manager.findOne(SubscriptionPlan, { where: { id: updateDto.planId } });
-            if (!plan) {
-                throw new NotFoundException(`Subscription Plan with id ${updateDto.planId} not found`);
-            }
-
-            const status = await queryRunner.manager.findOne(DataLookup, { where: { id: updateDto.statusId } });
-            if (!status) {
-                throw new NotFoundException(`Status with id ${updateDto.statusId} not found`);
-            }
-
-            subscription.customer = customer;
-            subscription.plan = plan;
-            subscription.startDate = updateDto.startDate;
-            subscription.endDate = updateDto.endDate;
-            subscription.status = status;
-
-            const updatedSubscription = await queryRunner.manager.save(subscription);
-
-            await queryRunner.commitTransaction();
-
-            return updatedSubscription as Subscription;
-        } catch (error) {
-            await queryRunner.rollbackTransaction();
-            throw error;
-        } finally {
-            await queryRunner.release();
+        const subscriptionStatus = await this.dataLookupRepository.findOneBy({ id: subscriptionStatusId });
+        if (!subscriptionStatus) {
+            throw new NotFoundException(`Subscription status with ID ${subscriptionStatusId} not found`);
         }
-    }
 
-    async findAll(): Promise<Subscription[]> {
-        return this.subscriptionRepository.find({ relations: ['customer', 'plan', 'status'] });
-    }
-
-    async findOne(id: string): Promise<Subscription> {
-        const subscription = await this.subscriptionRepository.findOne({
-            where: { id },
-            relations: ['customer', 'plan', 'status'],
+        const newSubscription = this.customerSubscriptionRepository.create({
+            user,
+            subscriptionPlan,
+            subscriptionStatus,
+            startDate,
+            endDate: null,
         });
-        if (!subscription) {
-            throw new NotFoundException(`Subscription with id ${id} not found`);
+
+        return this.customerSubscriptionRepository.save(newSubscription);
+    }
+
+    async getCustomerSubscriptions(userId: string): Promise<CustomerSubscription[]> {
+        const user = await this.userRepository.findOneBy({ id: userId });
+        if (!user) {
+            throw new NotFoundException(`User with ID ${userId} not found`);
         }
-        return subscription;
+
+        return this.customerSubscriptionRepository.find({
+            where: { user },
+            relations: ['subscriptionPlan', 'subscriptionStatus'],
+        });
+    }
+
+    async updateSubscriptionStatus(subscriptionId: string, updateSubscriptionStatusDto: UpdateSubscriptionStatusDto): Promise<CustomerSubscription> {
+        const { subscriptionStatusId, endDate } = updateSubscriptionStatusDto;
+
+        const subscription = await this.customerSubscriptionRepository.findOne({
+            where: { id: subscriptionId },
+            relations: ['subscriptionStatus'],
+        });
+
+        if (!subscription) {
+            throw new NotFoundException(`Subscription with ID ${subscriptionId} not found`);
+        }
+
+        const subscriptionStatus = await this.dataLookupRepository.findOneBy({ id: subscriptionStatusId });
+        if (!subscriptionStatus) {
+            throw new NotFoundException(`Subscription status with ID ${subscriptionStatusId} not found`);
+        }
+
+        subscription.subscriptionStatus = subscriptionStatus;
+        subscription.endDate = endDate || subscription.endDate;
+
+        return this.customerSubscriptionRepository.save(subscription);
+    }
+
+    async createSubscriptionPlan(createSubscriptionPlanDto: CreateSubscriptionPlanDto): Promise<SubscriptionPlan> {
+        const { name, description, price, billingCycleDays, statusId, prorate } = createSubscriptionPlanDto;
+
+        const status = await this.dataLookupRepository.findOneBy({ id: statusId });
+        if (!status) {
+            throw new NotFoundException(`Status with ID ${statusId} not found`);
+        }
+
+        const newPlan = this.subscriptionPlanRepository.create({
+            name,
+            description,
+            price,
+            billingCycleDays,
+            status,
+            prorate,
+        });
+
+        return this.subscriptionPlanRepository.save(newPlan);
+    }
+
+    async getSubscriptionPlans(): Promise<SubscriptionPlan[]> {
+        return this.subscriptionPlanRepository.find({
+            relations: ['status'],
+        });
+    }
+
+    async getSubscriptionPlanById(id: string): Promise<SubscriptionPlan> {
+        const plan = await this.subscriptionPlanRepository.findOne({
+            where: { id },
+            relations: ['status'],
+        });
+
+        if (!plan) {
+              throw new NotFoundException(`Subscription plan with ID ${id} not found`);
+          }
+
+        return plan;
+    }
+
+    async updateSubscriptionPlan(id: string, updateSubscriptionPlanDto: UpdateSubscriptionPlanDto): Promise<SubscriptionPlan> {
+        const plan = await this.getSubscriptionPlanById(id);
+
+        const { name, description, price, billingCycleDays, statusId, prorate } = updateSubscriptionPlanDto;
+
+        if (statusId) {
+            const status = await this.dataLookupRepository.findOneBy({ id: statusId });
+            if (!status) {
+                throw new NotFoundException(`Status with ID ${statusId} not found`);
+            }
+              plan.status = status;
+          }
+
+        plan.name = name ?? plan.name;
+        plan.description = description ?? plan.description;
+        plan.price = price ?? plan.price;
+        plan.billingCycleDays = billingCycleDays ?? plan.billingCycleDays;
+        plan.prorate = prorate !== undefined ? prorate : plan.prorate;
+
+        return this.subscriptionPlanRepository.save(plan);
+    }
+
+    async deleteSubscriptionPlan(id: string): Promise<void> {
+        const plan = await this.getSubscriptionPlanById(id);
+
+        await this.subscriptionPlanRepository.remove(plan);
     }
 }

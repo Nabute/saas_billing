@@ -2,7 +2,7 @@ import { Entity, Column, ManyToOne } from 'typeorm';
 import { BaseEntity } from './base.entity';
 import { DataLookup } from './data-lookup.entity';
 import { PaymentMethod } from './payment-method.entity';
-import { Subscription } from './subscription.entity';
+import { SubscriptionPlan } from './subscription.entity';
 
 @Entity('payments')
 export class Payment extends BaseEntity {
@@ -15,8 +15,8 @@ export class Payment extends BaseEntity {
   @ManyToOne(() => DataLookup)
   status: DataLookup; // 'pending', 'waiting_for_verification', 'verified', etc.
 
-  @ManyToOne(() => Subscription, (subscription) => subscription.payments)
-  subscription: Subscription;
+  @ManyToOne(() => SubscriptionPlan)
+  subscription: SubscriptionPlan;
 
   @ManyToOne(() => PaymentMethod)
   paymentMethod: PaymentMethod;

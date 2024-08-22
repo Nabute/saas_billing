@@ -3,8 +3,8 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { SubscriptionService } from '../subscription.service';
 import { Subscription } from '../../entities/subscription.entity';
-import { Customer } from '../../entities/customer.entity';
-import { SubscriptionPlan } from '../../entities/subscription-plan.entity';
+import { CustomerSubscription } from '../../entities/customer.entity';
+import { SubscriptionPlan } from '../../entities/subscription.entity';
 import { DataLookup } from '../../entities/data-lookup.entity';
 import { NotFoundException } from '@nestjs/common';
 import { UpdateSubscriptionDto } from 'src/dtos/subscription.dto';
@@ -34,7 +34,7 @@ const mockDataSource = {
 describe('SubscriptionService', () => {
     let service: SubscriptionService;
     let subscriptionRepository: Repository<Subscription>;
-    let customerRepository: Repository<Customer>;
+    let customerRepository: Repository<CustomerSubscription>;
     let subscriptionPlanRepository: Repository<SubscriptionPlan>;
     let dataLookupRepository: Repository<DataLookup>;
     let dataSource: DataSource;
@@ -44,7 +44,7 @@ describe('SubscriptionService', () => {
             providers: [
                 SubscriptionService,
                 { provide: getRepositoryToken(Subscription), useValue: mockRepository },
-                { provide: getRepositoryToken(Customer), useValue: mockRepository },
+                { provide: getRepositoryToken(CustomerSubscription), useValue: mockRepository },
                 { provide: getRepositoryToken(SubscriptionPlan), useValue: mockRepository },
                 { provide: getRepositoryToken(DataLookup), useValue: mockRepository },
                 { provide: DataSource, useValue: mockDataSource },
@@ -53,7 +53,7 @@ describe('SubscriptionService', () => {
 
         service = module.get<SubscriptionService>(SubscriptionService);
         subscriptionRepository = module.get<Repository<Subscription>>(getRepositoryToken(Subscription));
-        customerRepository = module.get<Repository<Customer>>(getRepositoryToken(Customer));
+        customerRepository = module.get<Repository<CustomerSubscription>>(getRepositoryToken(CustomerSubscription));
         subscriptionPlanRepository = module.get<Repository<SubscriptionPlan>>(getRepositoryToken(SubscriptionPlan));
         dataLookupRepository = module.get<Repository<DataLookup>>(getRepositoryToken(DataLookup));
         dataSource = module.get<DataSource>(DataSource);
@@ -73,7 +73,7 @@ describe('SubscriptionService', () => {
                 statusId: 'status-id',
             };
 
-            const customer = { id: 'customer-id' } as Customer;
+            const customer = { id: 'customer-id' } as CustomerSubscription;
             const plan = { id: 'plan-id' } as SubscriptionPlan;
             const status = { id: 'status-id' } as DataLookup;
             const subscription = { id: 'generated-id', ...createSubscriptionDto, customer, plan, status } as unknown as Subscription;

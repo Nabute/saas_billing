@@ -1,40 +1,61 @@
 import { ApiProperty, PartialType } from '@nestjs/swagger';
-import { IsDateString, IsNotEmpty, IsUUID, IsOptional, IsString } from 'class-validator';
+import { IsUUID, IsNotEmpty, IsOptional, IsString, IsInt, IsNumber } from 'class-validator';
 
 export class CreateSubscriptionDto {
-  @ApiProperty({ description: 'Customer ID for the subscription' })
-  @IsString()
-  @IsNotEmpty()
-  customerId: string; // UUID of the customer
-
-  @ApiProperty({ description: 'Subscription plan ID' })
-  @IsString()
-  @IsNotEmpty()
-  planId: string; // UUID of the subscription plan
-
-  @ApiProperty({ description: 'Start date of the subscription' })
-  @IsDateString()
-  startDate: Date;
-
-  @ApiProperty({ description: 'End date of the subscription', required: false })
-  @IsOptional()
-  @IsDateString()
-  endDate?: Date;
-
-  @ApiProperty({ description: 'Status ID of the subscription' })
-  @IsString()
-  @IsNotEmpty()
-  statusId: string; // UUID of the status from DataLookup
-}
-
-export class UpdateSubscriptionDto extends PartialType(CreateSubscriptionDto) { }
-
-export class AssignSubscriptionPlanDto {
-  @ApiProperty({ description: 'UUID of the customer' })
+  @ApiProperty({ description: 'UUID of the user who owns the subscription' })
   @IsUUID()
-  customerId: string;
+  userId: string;
 
   @ApiProperty({ description: 'UUID of the subscription plan' })
   @IsUUID()
   subscriptionPlanId: string;
+
+  @ApiProperty({ description: 'UUID of the subscription status' })
+  @IsUUID()
+  subscriptionStatusId: string;
+
+  @ApiProperty({ description: 'Start date of the subscription', type: 'string', format: 'date-time' })
+  @IsNotEmpty()
+  startDate: Date;
 }
+
+export class UpdateSubscriptionStatusDto {
+  @ApiProperty({ description: 'UUID of the subscription status to update to' })
+  @IsUUID()
+  subscriptionStatusId: string;
+
+  @ApiProperty({ description: 'End date of the subscription (optional)', type: 'string', format: 'date-time' })
+  @IsOptional()
+  endDate?: Date;
+}
+
+
+export class CreateSubscriptionPlanDto {
+  @ApiProperty({ description: 'Name of the subscription plan' })
+  @IsString()
+  name: string;
+
+  @ApiProperty({ description: 'Description of the subscription plan', required: false })
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @ApiProperty({ description: 'Price of the subscription plan' })
+  @IsNumber()
+  price: number;
+
+  @ApiProperty({ description: 'Billing cycle duration in days' })
+  @IsInt()
+  billingCycleDays: number;
+
+  @ApiProperty({ description: 'UUID of the status (e.g., active, inactive)' })
+  @IsUUID()
+  statusId: string;
+
+  @ApiProperty({ description: 'Indicates if the plan supports prorated billing' })
+  @IsOptional()
+  @IsNumber()
+  prorate: boolean;
+}
+
+export class UpdateSubscriptionPlanDto extends PartialType(CreateSubscriptionPlanDto) { }

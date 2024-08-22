@@ -1,58 +1,77 @@
-import { Controller, Get, Post, Body, Param, Put, Delete } from '@nestjs/common';
+import { Controller, Post, Get, Param, Delete, Body, Patch } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { SubscriptionService } from '../services/subscription.service';
-import { AssignSubscriptionPlanDto, CreateSubscriptionDto } from '../dtos/subscription.dto';
-import { Subscription } from '../entities/subscription.entity';
-import { Customer } from 'src/entities/customer.entity';
+import { CustomerSubscription } from '../entities/customer.entity';
+import { CreateSubscriptionDto, CreateSubscriptionPlanDto, UpdateSubscriptionPlanDto, UpdateSubscriptionStatusDto } from '../dtos/subscription.dto';
 import { ConfigService } from '@nestjs/config';
+import { SubscriptionPlan } from 'src/entities/subscription.entity';
 
 const config = new ConfigService();
 
-@ApiTags('Subscriptions')
-    @Controller({ path: 'subscriptions', version: config.get('API_VERSION') })
+@ApiTags('subscriptions')
+@Controller({ path: 'subscriptions', version: config.get('API_VERSION') })
 export class SubscriptionController {
-    constructor(private readonly subscriptionService: SubscriptionService) { }
+  constructor(private readonly subscriptionService: SubscriptionService) { }
 
-    @Post('subscribe')
-    @ApiOperation({ summary: 'Subscribe to a plan' })
-    async assignSubscriptionPlan(
-        @Body() assignDto: AssignSubscriptionPlanDto,
-    ): Promise<Customer> {
-        return this.subscriptionService.assignSubscriptionPlan(assignDto);
-    }
+  @Post()
+  @ApiOperation({ summary: 'Create a new customer subscription' })
+  @ApiResponse({ status: 201, description: 'The subscription has been successfully created.', type: CustomerSubscription })
+  createCustomerSubscription(@Body() createSubscriptionDto: CreateSubscriptionDto): Promise<CustomerSubscription> {
+    return this.subscriptionService.createCustomerSubscription(createSubscriptionDto);
+  }
 
-    @Post()
-    @ApiOperation({ summary: 'Create a new subscription' })
-    @ApiResponse({ status: 201, description: 'The subscription has been successfully created.', type: Subscription })
-    create(@Body() createSubscriptionDto: CreateSubscriptionDto) {
-        return this.subscriptionService.create(createSubscriptionDto);
-    }
+  @Get(':userId')
+  @ApiOperation({ summary: 'Get all subscriptions for a user' })
+  @ApiResponse({ status: 200, description: 'List of subscriptions for the user.', type: [CustomerSubscription] })
+  getCustomerSubscriptions(@Param('userId') userId: string): Promise<CustomerSubscription[]> {
+    return this.subscriptionService.getCustomerSubscriptions(userId);
+  }
 
-    @Get()
-    @ApiOperation({ summary: 'Get all subscriptions' })
-    @ApiResponse({ status: 200, description: 'List of subscriptions', type: [Subscription] })
-    findAll() {
-        return this.subscriptionService.findAll();
-    }
+  @Patch(':subscriptionId/status')
+  @ApiOperation({ summary: 'Update the status of a customer subscription' })
+  @ApiResponse({ status: 200, description: 'The subscription status has been updated.', type: CustomerSubscription })
+  updateSubscriptionStatus(
+    @Param('subscriptionId') subscriptionId: string,
+    @Body() updateSubscriptionStatusDto: UpdateSubscriptionStatusDto,
+  ): Promise<CustomerSubscription> {
+    return this.subscriptionService.updateSubscriptionStatus(subscriptionId, updateSubscriptionStatusDto);
+  }
 
-    @Get(':id')
-    @ApiOperation({ summary: 'Get a specific subscription by ID' })
-    @ApiResponse({ status: 200, description: 'The subscription', type: Subscription })
-    findOne(@Param('id') id: string) {
-        return this.subscriptionService.findOne(id);
-    }
+  @Post('plan')
+  @ApiOperation({ summary: 'Create a new subscription plan' })
+  @ApiResponse({ status: 201, description: 'The subscription plan has been successfully created.', type: SubscriptionPlan })
+  createSubscriptionPlan(@Body() createSubscriptionPlanDto: CreateSubscriptionPlanDto): Promise<SubscriptionPlan> {
+    return this.subscriptionService.createSubscriptionPlan(createSubscriptionPlanDto);
+  }
 
-    @Put(':id')
-    @ApiOperation({ summary: 'Update a subscription' })
-    @ApiResponse({ status: 200, description: 'The subscription has been successfully updated.', type: Subscription })
-    update(@Param('id') id: string, @Body() updateDto: CreateSubscriptionDto) {
-        return this.subscriptionService.update(id, updateDto);
-    }
+  @Get('plans')
+  @ApiOperation({ summary: 'Get all subscription plans' })
+  @ApiResponse({ status: 200, description: 'List of subscription plans.', type: [SubscriptionPlan] })
+  getSubscriptionPlans(): Promise<SubscriptionPlan[]> {
+    return this.subscriptionService.getSubscriptionPlans();
+  }
 
-    @Delete(':id')
-    @ApiOperation({ summary: 'Delete a subscription' })
-    @ApiResponse({ status: 204, description: 'The subscription has been successfully deleted.' })
-    remove(@Param('id') id: string) {
-        return this.subscriptionService.destroy(id);
-    }
+  @Get('plan/:id')
+  @ApiOperation({ summary: 'Get a subscription plan by ID' })
+  @ApiResponse({ status: 200, description: 'The subscription plan details.', type: SubscriptionPlan })
+  getSubscriptionPlanById(@Param('id') id: string): Promise<SubscriptionPlan> {
+    return this.subscriptionService.getSubscriptionPlanById(id);
+  }
+
+  @Patch('plan/:id')
+  @ApiOperation({ summary: 'Update a subscription plan by ID' })
+  @ApiResponse({ status: 200, description: 'The subscription plan has been updated.', type: SubscriptionPlan })
+  updateSubscriptionPlan(
+    @Param('id') id: string,
+    @Body() updateSubscriptionPlanDto: UpdateSubscriptionPlanDto,
+  ): Promise<SubscriptionPlan> {
+    return this.subscriptionService.updateSubscriptionPlan(id, updateSubscriptionPlanDto);
+  }
+
+  @Delete('plan/:id')
+  @ApiOperation({ summary: 'Delete a subscription plan by ID' })
+  @ApiResponse({ status: 204, description: 'The subscription plan has been deleted.' })
+  deleteSubscriptionPlan(@Param('id') id: string): Promise<void> {
+    return this.subscriptionService.deleteSubscriptionPlan(id);
+  }
 }

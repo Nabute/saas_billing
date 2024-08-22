@@ -1,35 +1,24 @@
 import { Entity, Column, ManyToOne } from 'typeorm';
 import { BaseEntity } from './base.entity';
 import { DataLookup } from './data-lookup.entity';
-import { SubscriptionPlan } from './subscription-plan.entity';
+import { SubscriptionPlan } from './subscription.entity';
+import { User } from './user.entity';
 
 @Entity('customers')
-export class Customer extends BaseEntity {
+export class CustomerSubscription extends BaseEntity {
 
-  @Column()
-  name: string;
+  @ManyToOne(() => User)
+  user: User;
 
-  @Column({ unique: true })
-  email: string;
-
-  @Column({ nullable: true })
-  phoneNumber: string;
-
-  @ManyToOne(() => SubscriptionPlan, { nullable: true })
+  @ManyToOne(() => SubscriptionPlan)
   subscriptionPlan: SubscriptionPlan;
 
   @ManyToOne(() => DataLookup)
   subscriptionStatus: DataLookup;
 
-  @Column({ nullable: true })
-  billingAddress: string;
+  @Column({ type: 'timestamp' })
+  startDate: Date;
 
-  @Column({ nullable: true })
-  country: string;
-
-  @Column({ nullable: true })
-  city: string;
-
-  @Column({ nullable: true })
-  postalCode: string;
+  @Column({ type: 'timestamp', nullable: true })
+  endDate: Date;
 }

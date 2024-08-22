@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository, DataSource, QueryRunner } from 'typeorm';
-import { SubscriptionPlanService } from '../subscription-plan.service';
-import { SubscriptionPlan } from '../../entities/subscription-plan.entity';
+import { SubscriptionService } from '../subscription.service';
+import { SubscriptionPlan } from '../../entities/subscription.entity';
 import { DataLookup } from '../../entities/data-lookup.entity';
 import { NotFoundException } from '@nestjs/common';
 
@@ -30,7 +30,7 @@ const mockDataSource = {
 };
 
 describe('SubscriptionPlanService', () => {
-    let service: SubscriptionPlanService;
+    let service: SubscriptionService;
     let subscriptionPlanRepository: Repository<SubscriptionPlan>;
     let dataLookupRepository: Repository<DataLookup>;
     let dataSource: DataSource;
@@ -39,14 +39,14 @@ describe('SubscriptionPlanService', () => {
     beforeEach(async () => {
         const module: TestingModule = await Test.createTestingModule({
             providers: [
-                SubscriptionPlanService,
+                SubscriptionService,
                 { provide: getRepositoryToken(SubscriptionPlan), useValue: mockRepository },
                 { provide: getRepositoryToken(DataLookup), useValue: mockRepository },
                 { provide: DataSource, useValue: mockDataSource },
             ],
         }).compile();
 
-        service = module.get<SubscriptionPlanService>(SubscriptionPlanService);
+        service = module.get<SubscriptionService>(SubscriptionService);
         subscriptionPlanRepository = module.get<Repository<SubscriptionPlan>>(getRepositoryToken(SubscriptionPlan));
         dataLookupRepository = module.get<Repository<DataLookup>>(getRepositoryToken(DataLookup));
         dataSource = module.get<DataSource>(DataSource);
