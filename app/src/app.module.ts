@@ -13,16 +13,32 @@ import { SubscriptionController } from './controllers/subscription.controller';
 import { SubscriptionService } from './services/subscription.service';
 import { Subscription } from './entities/subscription.entity';
 import { DataSource } from 'typeorm';
+import { AuthService } from './services/auth.service';
+import { PassportModule } from '@nestjs/passport';
+import { JwtModule } from '@nestjs/jwt';
+import { jwtConstants } from './auth/constants';
+import { JwtStrategy } from './auth/jwt.strategy';
+import { UsersService } from './services/users.service';
+import { AuthController } from './controllers/auth.controller';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { User } from './entities/user.entity';
 
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRoot(dataSrouceOptions),
-    TypeOrmModule.forFeature([SubscriptionPlan, Subscription, Customer, Invoice, Payment, DataLookup]),
+    TypeOrmModule.forFeature([User, SubscriptionPlan, Subscription, Customer, Invoice, Payment, DataLookup]),
+    PassportModule,
+    JwtModule.register({
+      secret: jwtConstants.secret,
+      signOptions: { expiresIn: '60m' },
+    }),
   ],
-  controllers: [SubscriptionPlanController, SubscriptionController],
-  providers: [SubscriptionPlanService, SubscriptionService],
+  controllers: [SubscriptionPlanController, SubscriptionController, AuthController],
+  providers: [SubscriptionPlanService, SubscriptionService, AuthService,
+    UsersService,
+    JwtStrategy, JwtAuthGuard],
 })
 export class AppModule {
   constructor(private dataSource: DataSource) { }

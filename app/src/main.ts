@@ -10,6 +10,10 @@ import { ValidationExceptionFilter } from './exceptions/validation-exception.fil
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  app.enableCors();
+
+  app.setGlobalPrefix('api/');
+
   // Enable API versioning
   app.enableVersioning({
     type: VersioningType.URI, // Use URI-based versioning
@@ -31,7 +35,7 @@ async function bootstrap() {
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, document);
+  SwaggerModule.setup('api/docs', app, document);
 
   await app.listen(3000);
 }

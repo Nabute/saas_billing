@@ -4,9 +4,12 @@ import { SubscriptionService } from '../services/subscription.service';
 import { AssignSubscriptionPlanDto, CreateSubscriptionDto } from '../dtos/subscription.dto';
 import { Subscription } from '../entities/subscription.entity';
 import { Customer } from 'src/entities/customer.entity';
+import { ConfigService } from '@nestjs/config';
+
+const config = new ConfigService();
 
 @ApiTags('Subscriptions')
-@Controller({ path: 'subscriptions', version: '1' })
+    @Controller({ path: 'subscriptions', version: config.get('API_VERSION') })
 export class SubscriptionController {
     constructor(private readonly subscriptionService: SubscriptionService) { }
 
