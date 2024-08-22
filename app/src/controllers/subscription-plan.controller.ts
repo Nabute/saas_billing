@@ -3,9 +3,12 @@ import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { SubscriptionPlanService } from '../services/subscription-plan.service';
 import { CreateSubscriptionPlanDto } from '../dtos/subscription-plan.dto';
 import { SubscriptionPlan } from '../entities/subscription-plan.entity';
+import { ConfigService } from '@nestjs/config';
+
+const config = new ConfigService();
 
 @ApiTags('Subscription Plans')
-@Controller({ path: 'subscription-plans', version: '1' })
+@Controller({ path: 'subscription-plans', version: config.get('API_VERSION') })
 export class SubscriptionPlanController {
     constructor(private readonly subscriptionPlanService: SubscriptionPlanService) { }
 
