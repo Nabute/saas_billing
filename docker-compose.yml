@@ -1,0 +1,47 @@
+services:
+  app:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    ports:
+      - '3000:3000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./app:/usr/src/app
+    restart: always
+  
+  postgres:
+    image: postgres:latest
+    env_file:
+      - .env
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d billing_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - '5454:5432'
+    volumes:
+      - billing_dev_postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  pgadmin:
+    image: dpage/pgadmin4
+    ports:
+      - '5422:80'
+    env_file:
+      - .env
+    volumes:
+      - billing_dev_pgadmin_data:/var/lib/pgadmin
+      - ./config_local.py:/pgadmin4/config_local.py
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  billing_dev_postgres_data:
+  billing_dev_pgadmin_data:
