@@ -4,7 +4,7 @@ import { BillingService } from '../services/billing.service';
 import { JobQueues } from '../utils/enums';
 
 /**
- * BillingProcessor is responsible for processing jobs related to billing, 
+ * BillingProcessor is responsible for processing jobs related to billing,
  * specifically for generating invoices.
  */
 @Processor(JobQueues.BILLING)
@@ -13,7 +13,7 @@ export class BillingProcessor {
 
   /**
    * Handles the 'generateInvoice' job from the billing queue.
-   * 
+   *
    * @param job - The Bull job containing the data needed to generate an invoice.
    */
   @Process('generateInvoice')
@@ -21,7 +21,8 @@ export class BillingProcessor {
     const { subscriptionId } = job.data;
 
     try {
-      const subscription = await this.billingService.getSubscriptionById(subscriptionId);
+      const subscription =
+        await this.billingService.getSubscriptionById(subscriptionId);
       if (subscription) {
         await this.billingService.createInvoiceForSubscription(subscription);
       } else {
@@ -29,7 +30,10 @@ export class BillingProcessor {
         console.warn(`Subscription with ID ${subscriptionId} not found.`);
       }
     } catch (error) {
-      console.error(`Failed to generate invoice for subscription ID ${subscriptionId}:`, error);
+      console.error(
+        `Failed to generate invoice for subscription ID ${subscriptionId}:`,
+        error,
+      );
     }
   }
 }

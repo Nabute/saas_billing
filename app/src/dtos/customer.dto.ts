@@ -1,4 +1,4 @@
 export class CreateCustomerDto {
-    name: string;
-    subscriptionPlanId: string;
+  name: string;
+  subscriptionPlanId: string;
 }

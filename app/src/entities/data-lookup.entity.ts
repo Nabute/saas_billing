@@ -1,11 +1,17 @@
-import { Entity, Column, CreateDateColumn, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  CreateDateColumn,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 import { IsUniqueValue } from '../constraints/uniqueValueConstraint';
 
 @Entity()
 export class DataLookup {
   @PrimaryGeneratedColumn('uuid')
   id: string;
-  
+
   @Column({ length: 256 })
   type: string;
 
