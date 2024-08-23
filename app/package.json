@@ -1,10 +1,25 @@
 {
   "name": "billing-app",
   "version": "0.0.1",
-  "description": "",
-  "author": "",
+  "description": "Billing App for a SaaS Platform",
+  "author": "nabute925@gmail.com",
   "private": true,
   "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/billing-app.git"
+  },
+  "keywords": [
+    "billing",
+    "SaaS",
+    "nestjs",
+    "typeorm",
+    "docker",
+    "docker compose",
+    "cloudflare",
+    "serverless",
+    "cloud functions"
+  ],
   "scripts": {
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
@@ -22,6 +37,7 @@
     "migration:generate": "npm run typeorm -- migration:generate",
     "migration:run": "npm run typeorm -- migration:run",
     "migration:revert": "npm run typeorm -- migration:revert",
+    "load:fixtures": "ts-node ./node_modules/typeorm-extension/bin/cli.cjs seed:run -d db/data-source.ts",
     "seed:data-lookup": "ts-node ./db/seeders/data-lookup/create.runner.ts",
     "seed:settings": "ts-node ./db/seeders/settings/create.runner.ts"
   },
@@ -102,6 +118,27 @@
     "roots": [
       "<rootDir>/src/",
       "<rootDir>/tests/"
+    ]
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  },
+  "config": {
+    "commitizen": {
+      "path": "./node_modules/cz-conventional-changelog"
+    }
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "lint-staged": {
+    "src/**/*.{ts,js,json}": [
+      "prettier --write",
+      "eslint --fix",
+      "git add"
     ]
   }
 }
