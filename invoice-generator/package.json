@@ -1,0 +1,23 @@
+{
+  "name": "invoice-generator",
+  "version": "0.0.0",
+  "main": "dist/index.js",
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240821.1",
+    "@vitest/coverage-v8": "^2.0.5",
+    "typescript": "^5.5.4",
+    "vitest": "^2.0.5",
+    "wrangler": "3.71.0"
+  },
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "start": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "test": "vitest",
+    "coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "nanoid": "^5.0.7"
+  }
+}

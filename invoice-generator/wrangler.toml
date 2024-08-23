@@ -1,0 +1,25 @@
+name = "invoice-generator"
+main = "index.ts"
+type = "javascript"
+
+account_id = "<cloudflare-account-id>"
+
+workers_dev = true
+
+compatibility_date = "2024-08-23"
+
+[env.production]
+zone_id = "<zone-id>"
+
+route = "https://example.com/invoice/generate"
+
+[build]
+command = "npm run build"
+
+[build.upload]
+format = "service-worker"
+
+
+[[kv_namespaces]]
+binding = "SUBSCRIPTIONS_KV" # KV namespace binding
+id = "kv-namespace-id"  # KV namespace ID
