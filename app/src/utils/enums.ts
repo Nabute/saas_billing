@@ -37,3 +37,44 @@ export enum SubscriptionStatus {
     TRIAL_ENDED = 'subscription_status_trial_ended',
     ARCHIVED = 'subscription_status_archived',
 }
+
+export enum InvoiceStatus {
+
+    TYPE = 'invoice_status',
+
+    PENDING = 'invoice_status_pending',
+    PAID = 'invoice_status_paid',
+    FAILED = 'invoice_status_failed',
+}
+
+export enum PaymentStatus {
+
+    TYPE = 'payment_status',
+
+    PENDING = 'payment_status_pending',
+    WAITING_FOR_VERIFICATION = 'payment_status_waiting_for_verification',
+    VERIFIED = 'payment_status_verified',
+}
+
+export enum PaymentMethodType {
+
+    TYPE = 'payment_method_type',
+
+    ONLINE = 'payment_method_type_online',
+    BANK_TRANSFER = 'payment_method_type_bank_transfer',
+}
+
+
+export enum PaymentMethodCode {
+    STRIPE = "PM_STRIPE",
+    VISA = "PM_VISA",
+}
+
+export enum PaymentRetrySettings {
+    MAX_RETRIES = "PAYMENT_RETRY_MAX_RETRIES",
+    RETRY_DELAY_MINUTES = "PAYMENT_RETRY_DELAY_MINUTES",
+}
+
+export enum JobQueues {
+    PAYMENT_RETRY = "payment-retry"
+}

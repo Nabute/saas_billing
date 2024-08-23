@@ -4,7 +4,11 @@ import { DataLookup } from './data-lookup.entity';
 
 @Entity('payment_methods')
 export class PaymentMethod extends BaseEntity {
-    @Column({ unique: true, length: 100 })
+
+    @Column({ unique: true, length: 50 })
+    code: string;
+
+    @Column({ length: 100 })
     name: string;
 
     @Column({ nullable: true, length: 100 })
@@ -17,8 +21,5 @@ export class PaymentMethod extends BaseEntity {
     logo?: string;
 
     @ManyToOne(() => DataLookup)
-    type: DataLookup; // 'online' or 'bank_transfer'
-
-    @ManyToOne(() => DataLookup)
-    status: DataLookup;
+    type: DataLookup;
 }

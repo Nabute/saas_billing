@@ -1,14 +1,16 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { CustomerSubscription } from '../entities/customer.entity';
 import { User } from '../entities/user.entity';
 import { SubscriptionPlan } from '../entities/subscription.entity';
 import { DataLookup } from '../entities/data-lookup.entity';
 import { CreateSubscriptionDto, CreateSubscriptionPlanDto, UpdateSubscriptionPlanDto, UpdateSubscriptionStatusDto } from '../dtos/subscription.dto';
+import { ObjectState, SubscriptionPlanState, SubscriptionStatus } from 'src/utils/enums';
+import { GenericService } from './base.service';
 
 @Injectable()
-export class SubscriptionService {
+export class SubscriptionService extends GenericService<SubscriptionPlan> {
     constructor(
         @InjectRepository(CustomerSubscription)
         private readonly customerSubscriptionRepository: Repository<CustomerSubscription>,
@@ -18,7 +20,10 @@ export class SubscriptionService {
         private readonly subscriptionPlanRepository: Repository<SubscriptionPlan>,
         @InjectRepository(DataLookup)
         private readonly dataLookupRepository: Repository<DataLookup>,
-    ) { }
+        dataSource: DataSource,
+    ) {
+        super(SubscriptionPlan, dataSource)
+    }
 
     async createCustomerSubscription(createSubscriptionDto: CreateSubscriptionDto): Promise<CustomerSubscription> {
         const { userId, subscriptionPlanId, subscriptionStatusId, startDate } = createSubscriptionDto;
@@ -85,11 +90,11 @@ export class SubscriptionService {
     }
 
     async createSubscriptionPlan(createSubscriptionPlanDto: CreateSubscriptionPlanDto): Promise<SubscriptionPlan> {
-        const { name, description, price, billingCycleDays, statusId, prorate } = createSubscriptionPlanDto;
+        const { name, description, price, billingCycleDays, prorate } = createSubscriptionPlanDto;
 
-        const status = await this.dataLookupRepository.findOneBy({ id: statusId });
-        if (!status) {
-            throw new NotFoundException(`Status with ID ${statusId} not found`);
+        const planDefaultState = await this.dataLookupRepository.findOneBy({ type: SubscriptionPlanState.TYPE, is_default: true });
+        if (!planDefaultState) {
+            throw new NotFoundException(`Unable to find subscription plan default state, please seed fixture data.`);
         }
 
         const newPlan = this.subscriptionPlanRepository.create({
@@ -97,23 +102,23 @@ export class SubscriptionService {
             description,
             price,
             billingCycleDays,
-            status,
+            status: planDefaultState,
             prorate,
         });
 
-        return this.subscriptionPlanRepository.save(newPlan);
+        return this.saveEntityWithDefaultState(newPlan, ObjectState.TYPE);
     }
 
     async getSubscriptionPlans(): Promise<SubscriptionPlan[]> {
         return this.subscriptionPlanRepository.find({
-            relations: ['status'],
+            relations: ['status', 'objectState'],
         });
     }
 
     async getSubscriptionPlanById(id: string): Promise<SubscriptionPlan> {
         const plan = await this.subscriptionPlanRepository.findOne({
             where: { id },
-            relations: ['status'],
+            relations: ['status', 'objectState'],
         });
 
         if (!plan) {
@@ -145,9 +150,7 @@ export class SubscriptionService {
         return this.subscriptionPlanRepository.save(plan);
     }
 
-    async deleteSubscriptionPlan(id: string): Promise<void> {
-        const plan = await this.getSubscriptionPlanById(id);
-
-        await this.subscriptionPlanRepository.remove(plan);
+    deleteSubscriptionPlan(id: string): Promise<void> {
+        return this.destroy(id);
     }
 }

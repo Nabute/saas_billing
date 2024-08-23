@@ -2,21 +2,18 @@ import { Entity, Column, ManyToOne } from 'typeorm';
 import { BaseEntity } from './base.entity';
 import { DataLookup } from './data-lookup.entity';
 import { PaymentMethod } from './payment-method.entity';
-import { SubscriptionPlan } from './subscription.entity';
+import { Invoice } from './invoice.entity';
 
 @Entity('payments')
 export class Payment extends BaseEntity {
   @Column('decimal', { precision: 10, scale: 2 })
   amount: number;
 
-  @Column({ length: 3 })
-  currency: string;
-
   @ManyToOne(() => DataLookup)
-  status: DataLookup; // 'pending', 'waiting_for_verification', 'verified', etc.
+  status: DataLookup;
 
-  @ManyToOne(() => SubscriptionPlan)
-  subscription: SubscriptionPlan;
+  @ManyToOne(() => Invoice)
+  invoice: Invoice;
 
   @ManyToOne(() => PaymentMethod)
   paymentMethod: PaymentMethod;
