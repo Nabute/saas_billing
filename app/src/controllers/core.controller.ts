@@ -4,7 +4,7 @@ import { CreateSystemSettingDto, ResetSystemSettingDto, UpdateSystemSettingDto }
 import { SystemSetting } from "../entities/system-settings.entity";
 import { SystemSettingService } from "../services/setting.service";
 import { CreateDataLookupDto } from "../dtos/core.dto";
-import { DataLookupService } from "../services/core.service";
+import { DataLookupService } from "../services/data-lookup.service";
 import { ConfigService } from "@nestjs/config";
 
 const config = new ConfigService();
