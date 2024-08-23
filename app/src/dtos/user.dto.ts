@@ -26,7 +26,6 @@ export class CreateUserDto {
   phoneNumber?: string;
 }
 
-
 export class LoginDto {
   @ApiProperty({ description: 'Unique email of the user' })
   @IsEmail()
@@ -38,4 +37,4 @@ export class LoginDto {
   password: string;
 }
 
-export class UpdateUserDto extends PartialType(CreateUserDto) { }
+export class UpdateUserDto extends PartialType(CreateUserDto) {}

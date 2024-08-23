@@ -1,5 +1,5 @@
 import { ApiProperty, PartialType } from '@nestjs/swagger';
-import { IsUUID, IsNotEmpty, IsOptional, IsString, IsInt, IsNumber } from 'class-validator';
+import { IsUUID, IsOptional, IsString, IsInt, IsNumber } from 'class-validator';
 
 export class CreateSubscriptionDto {
   @ApiProperty({ description: 'UUID of the user who owns the subscription' })
@@ -16,18 +16,24 @@ export class UpdateSubscriptionStatusDto {
   @IsUUID()
   subscriptionStatusId: string;
 
-  @ApiProperty({ description: 'End date of the subscription (optional)', type: 'string', format: 'date-time' })
+  @ApiProperty({
+    description: 'End date of the subscription (optional)',
+    type: 'string',
+    format: 'date-time',
+  })
   @IsOptional()
   endDate?: Date;
 }
-
 
 export class CreateSubscriptionPlanDto {
   @ApiProperty({ description: 'Name of the subscription plan' })
   @IsString()
   name: string;
 
-  @ApiProperty({ description: 'Description of the subscription plan', required: false })
+  @ApiProperty({
+    description: 'Description of the subscription plan',
+    required: false,
+  })
   @IsOptional()
   @IsString()
   description?: string;
@@ -44,10 +50,14 @@ export class CreateSubscriptionPlanDto {
   @IsUUID()
   statusId: string;
 
-  @ApiProperty({ description: 'Indicates if the plan supports prorated billing' })
+  @ApiProperty({
+    description: 'Indicates if the plan supports prorated billing',
+  })
   @IsOptional()
   @IsNumber()
   prorate: boolean;
 }
 
-export class UpdateSubscriptionPlanDto extends PartialType(CreateSubscriptionPlanDto) { }
+export class UpdateSubscriptionPlanDto extends PartialType(
+  CreateSubscriptionPlanDto,
+) {}

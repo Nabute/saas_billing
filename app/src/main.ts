@@ -30,7 +30,9 @@ async function bootstrap() {
   // Swagger configuration
   const config = new DocumentBuilder()
     .setTitle('SaaS Subscription Billing')
-    .setDescription('A billing app for a SaaS platform that supports multiple subscription tiers and handles recurring billing.')
+    .setDescription(
+      'A billing app for a SaaS platform that supports multiple subscription tiers and handles recurring billing.',
+    )
     .setVersion('1.0')
     .build();
 

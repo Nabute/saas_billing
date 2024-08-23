@@ -5,7 +5,6 @@ import { CustomerSubscription } from './customer.entity';
 
 @Entity('invoices')
 export class Invoice extends BaseEntity {
-
   @Column({ unique: true, length: 50 })
   code: string;
 

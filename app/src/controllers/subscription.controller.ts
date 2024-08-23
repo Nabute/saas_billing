@@ -1,8 +1,21 @@
-import { Controller, Post, Get, Param, Delete, Body, Patch } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Param,
+  Delete,
+  Body,
+  Patch,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { SubscriptionService } from '../services/subscription.service';
 import { CustomerSubscription } from '../entities/customer.entity';
-import { CreateSubscriptionDto, CreateSubscriptionPlanDto, UpdateSubscriptionPlanDto, UpdateSubscriptionStatusDto } from '../dtos/subscription.dto';
+import {
+  CreateSubscriptionDto,
+  CreateSubscriptionPlanDto,
+  UpdateSubscriptionPlanDto,
+  UpdateSubscriptionStatusDto,
+} from '../dtos/subscription.dto';
 import { ConfigService } from '@nestjs/config';
 import { SubscriptionPlan } from '../entities/subscription.entity';
 
@@ -14,7 +27,7 @@ const config = new ConfigService();
 @ApiTags('subscriptions')
 @Controller({ path: 'subscriptions', version: config.get('API_VERSION') })
 export class SubscriptionController {
-  constructor(private readonly subscriptionService: SubscriptionService) { }
+  constructor(private readonly subscriptionService: SubscriptionService) {}
 
   /**
    * Creates a new customer subscription.
@@ -24,9 +37,17 @@ export class SubscriptionController {
    */
   @Post('subscribe')
   @ApiOperation({ summary: 'Create a new customer subscription' })
-  @ApiResponse({ status: 201, description: 'The subscription has been successfully created.', type: CustomerSubscription })
-  createCustomerSubscription(@Body() createSubscriptionDto: CreateSubscriptionDto): Promise<CustomerSubscription> {
-    return this.subscriptionService.createCustomerSubscription(createSubscriptionDto);
+  @ApiResponse({
+    status: 201,
+    description: 'The subscription has been successfully created.',
+    type: CustomerSubscription,
+  })
+  createCustomerSubscription(
+    @Body() createSubscriptionDto: CreateSubscriptionDto,
+  ): Promise<CustomerSubscription> {
+    return this.subscriptionService.createCustomerSubscription(
+      createSubscriptionDto,
+    );
   }
 
   /**
@@ -37,9 +58,17 @@ export class SubscriptionController {
    */
   @Post('plan')
   @ApiOperation({ summary: 'Create a new subscription plan' })
-  @ApiResponse({ status: 201, description: 'The subscription plan has been successfully created.', type: SubscriptionPlan })
-  createSubscriptionPlan(@Body() createSubscriptionPlanDto: CreateSubscriptionPlanDto): Promise<SubscriptionPlan> {
-    return this.subscriptionService.createSubscriptionPlan(createSubscriptionPlanDto);
+  @ApiResponse({
+    status: 201,
+    description: 'The subscription plan has been successfully created.',
+    type: SubscriptionPlan,
+  })
+  createSubscriptionPlan(
+    @Body() createSubscriptionPlanDto: CreateSubscriptionPlanDto,
+  ): Promise<SubscriptionPlan> {
+    return this.subscriptionService.createSubscriptionPlan(
+      createSubscriptionPlanDto,
+    );
   }
 
   /**
@@ -49,7 +78,11 @@ export class SubscriptionController {
    */
   @Get('plans')
   @ApiOperation({ summary: 'Get all active subscription plans' })
-  @ApiResponse({ status: 200, description: 'List of subscription plans.', type: [SubscriptionPlan] })
+  @ApiResponse({
+    status: 200,
+    description: 'List of subscription plans.',
+    type: [SubscriptionPlan],
+  })
   plans(): Promise<SubscriptionPlan[]> {
     return this.subscriptionService.getSubscriptionPlans();
   }
@@ -62,8 +95,14 @@ export class SubscriptionController {
    */
   @Get(':userId')
   @ApiOperation({ summary: 'Get all subscriptions for a user' })
-  @ApiResponse({ status: 200, description: 'List of subscriptions for the user.', type: [CustomerSubscription] })
-  getCustomerSubscriptions(@Param('userId') userId: string): Promise<CustomerSubscription[]> {
+  @ApiResponse({
+    status: 200,
+    description: 'List of subscriptions for the user.',
+    type: [CustomerSubscription],
+  })
+  getCustomerSubscriptions(
+    @Param('userId') userId: string,
+  ): Promise<CustomerSubscription[]> {
     return this.subscriptionService.getCustomerSubscriptions(userId);
   }
 
@@ -76,12 +115,19 @@ export class SubscriptionController {
    */
   @Patch(':subscriptionId/status')
   @ApiOperation({ summary: 'Update the status of a customer subscription' })
-  @ApiResponse({ status: 200, description: 'The subscription status has been updated.', type: CustomerSubscription })
+  @ApiResponse({
+    status: 200,
+    description: 'The subscription status has been updated.',
+    type: CustomerSubscription,
+  })
   updateSubscriptionStatus(
     @Param('subscriptionId') subscriptionId: string,
     @Body() updateSubscriptionStatusDto: UpdateSubscriptionStatusDto,
   ): Promise<CustomerSubscription> {
-    return this.subscriptionService.updateSubscriptionStatus(subscriptionId, updateSubscriptionStatusDto);
+    return this.subscriptionService.updateSubscriptionStatus(
+      subscriptionId,
+      updateSubscriptionStatusDto,
+    );
   }
 
   /**
@@ -92,7 +138,11 @@ export class SubscriptionController {
    */
   @Get('plan/:id')
   @ApiOperation({ summary: 'Get a subscription plan by ID' })
-  @ApiResponse({ status: 200, description: 'The subscription plan details.', type: SubscriptionPlan })
+  @ApiResponse({
+    status: 200,
+    description: 'The subscription plan details.',
+    type: SubscriptionPlan,
+  })
   getSubscriptionPlanById(@Param('id') id: string): Promise<SubscriptionPlan> {
     return this.subscriptionService.getSubscriptionPlanById(id);
   }
@@ -106,12 +156,19 @@ export class SubscriptionController {
    */
   @Patch('plan/:id')
   @ApiOperation({ summary: 'Update a subscription plan by ID' })
-  @ApiResponse({ status: 200, description: 'The subscription plan has been updated.', type: SubscriptionPlan })
+  @ApiResponse({
+    status: 200,
+    description: 'The subscription plan has been updated.',
+    type: SubscriptionPlan,
+  })
   updateSubscriptionPlan(
     @Param('id') id: string,
     @Body() updateSubscriptionPlanDto: UpdateSubscriptionPlanDto,
   ): Promise<SubscriptionPlan> {
-    return this.subscriptionService.updateSubscriptionPlan(id, updateSubscriptionPlanDto);
+    return this.subscriptionService.updateSubscriptionPlan(
+      id,
+      updateSubscriptionPlanDto,
+    );
   }
 
   /**
@@ -121,7 +178,10 @@ export class SubscriptionController {
    */
   @Delete('plan/:id')
   @ApiOperation({ summary: 'Delete a subscription plan by ID' })
-  @ApiResponse({ status: 204, description: 'The subscription plan has been deleted.' })
+  @ApiResponse({
+    status: 204,
+    description: 'The subscription plan has been deleted.',
+  })
   deleteSubscriptionPlan(@Param('id') id: string): Promise<void> {
     return this.subscriptionService.deleteSubscriptionPlan(id);
   }

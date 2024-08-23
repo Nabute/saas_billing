@@ -29,11 +29,11 @@ describe('IsUniqueValueConstraint', () => {
 
     it('should return true if the value is unique', async () => {
         jest.spyOn(dataLookupService, 'existsByValue').mockResolvedValue(false);
-        expect(await constraint.validate('unique-value', {} as any)).toBe(true);
+        expect(await constraint.validate('unique-value')).toBe(true);
     });
 
     it('should return false if the value is not unique', async () => {
         jest.spyOn(dataLookupService, 'existsByValue').mockResolvedValue(true);
-        expect(await constraint.validate('duplicate-value', {} as any)).toBe(false);
+        expect(await constraint.validate('duplicate-value')).toBe(false);
     });
 });

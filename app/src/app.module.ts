@@ -20,7 +20,10 @@ import { AuthController } from './controllers/auth.controller';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { User } from './entities/user.entity';
 import { ScheduleModule } from '@nestjs/schedule';
-import { SystemSettingController, DataLookupController } from './controllers/core.controller';
+import {
+  SystemSettingController,
+  DataLookupController,
+} from './controllers/core.controller';
 import { DataLookupService } from './services/data-lookup.service';
 import { SystemSettingService } from './services/setting.service';
 import { SystemSetting } from './entities/system-settings.entity';
@@ -39,11 +42,22 @@ const config = new ConfigService();
     ScheduleModule.forRoot(),
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRoot(dataSrouceOptions),
-    TypeOrmModule.forFeature([User, SubscriptionPlan, CustomerSubscription, Invoice, Payment, DataLookup, SystemSetting, PaymentMethod]),
+    TypeOrmModule.forFeature([
+      User,
+      SubscriptionPlan,
+      CustomerSubscription,
+      Invoice,
+      Payment,
+      DataLookup,
+      SystemSetting,
+      PaymentMethod,
+    ]),
     PassportModule,
     JwtModule.registerAsync({
       inject: [ConfigService],
-      useFactory: async (configService: ConfigService): Promise<JwtModuleOptions> => ({
+      useFactory: async (
+        configService: ConfigService,
+      ): Promise<JwtModuleOptions> => ({
         secret: configService.get<string>('SECRET'),
         signOptions: { expiresIn: '60s' },
       }),
@@ -56,18 +70,35 @@ const config = new ConfigService();
     }),
     BullModule.registerQueue(
       {
-      name: JobQueues.PAYMENT_RETRY,
+        name: JobQueues.PAYMENT_RETRY,
       },
       {
         name: JobQueues.BILLING,
       },
     ),
   ],
-  controllers: [SubscriptionController, AuthController, SystemSettingController, DataLookupController],
-  providers: [SubscriptionService, AuthService, StripeService, NotificationsService,
-    UsersService, SystemSettingService, DataLookupService, BillingService,
-    JwtStrategy, JwtAuthGuard, PaymentProcessor, PaymentService, jwtConstantsProvider],
+  controllers: [
+    SubscriptionController,
+    AuthController,
+    SystemSettingController,
+    DataLookupController,
+  ],
+  providers: [
+    SubscriptionService,
+    AuthService,
+    StripeService,
+    NotificationsService,
+    UsersService,
+    SystemSettingService,
+    DataLookupService,
+    BillingService,
+    JwtStrategy,
+    JwtAuthGuard,
+    PaymentProcessor,
+    PaymentService,
+    jwtConstantsProvider,
+  ],
 })
 export class AppModule {
-  constructor(private dataSource: DataSource) { }
+  constructor(private dataSource: DataSource) {}
 }

@@ -6,7 +6,6 @@ import { User } from './user.entity';
 
 @Entity('customers')
 export class CustomerSubscription extends BaseEntity {
-
   @ManyToOne(() => User)
   user: User;
 
