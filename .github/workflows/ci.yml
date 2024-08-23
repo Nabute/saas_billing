@@ -49,7 +49,6 @@ jobs:
 
       - name: Extract coverage percentage
         id: coverage
-        working-directory: app
         run: |
           COVERAGE=$(grep -m 1 -o '[0-9]*\.[0-9]*%' coverage/lcov-report/index.html)
           echo "coverage=$COVERAGE" >> $GITHUB_ENV
