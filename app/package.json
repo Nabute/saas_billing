@@ -82,6 +82,13 @@
       "json",
       "ts"
     ],
+    "modulePathIgnorePatterns": [
+      "<rootDir>/src/dtos",
+      "<rootDir>/src/entities",
+      "<rootDir>/src/guards",
+      "<rootDir>/src/app.module.ts",
+      "<rootDir>/src/main.ts"
+    ],
     "rootDir": ".",
     "testRegex": ".*\\.spec\\.ts$",
     "transform": {

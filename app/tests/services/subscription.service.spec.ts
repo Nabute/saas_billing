@@ -76,8 +76,6 @@ describe('SubscriptionService', () => {
             const createSubscriptionDto: CreateSubscriptionDto = {
                 userId: 'user_1',
                 subscriptionPlanId: 'plan_1',
-                subscriptionStatusId: 'status_1',
-                startDate: new Date(),
             };
 
             const mockUser = { id: 'user_1' } as User;
@@ -98,9 +96,9 @@ describe('SubscriptionService', () => {
                 user: mockUser,
                 subscriptionPlan: mockPlan,
                 subscriptionStatus: mockStatus,
-                startDate: createSubscriptionDto.startDate,
                 endDate: null,
-                nextBillingDate: expect.any(Date),
+                nextBillingDate: expect.any(Number),
+                startDate: expect.any(Number),
             });
             expect(customerSubscriptionRepository.save).toHaveBeenCalledWith(mockSubscription);
         });
@@ -109,8 +107,6 @@ describe('SubscriptionService', () => {
             const createSubscriptionDto: CreateSubscriptionDto = {
                 userId: 'user_1',
                 subscriptionPlanId: 'plan_1',
-                subscriptionStatusId: 'status_1',
-                startDate: new Date(),
             };
 
             userRepository.findOneBy.mockResolvedValue(null);
@@ -122,8 +118,6 @@ describe('SubscriptionService', () => {
             const createSubscriptionDto: CreateSubscriptionDto = {
                 userId: 'user_1',
                 subscriptionPlanId: 'plan_1',
-                subscriptionStatusId: 'status_1',
-                startDate: new Date(),
             };
 
             const mockUser = { id: 'user_1' } as User;
@@ -137,8 +131,6 @@ describe('SubscriptionService', () => {
             const createSubscriptionDto: CreateSubscriptionDto = {
                 userId: 'user_1',
                 subscriptionPlanId: 'plan_1',
-                subscriptionStatusId: 'status_1',
-                startDate: new Date(),
             };
 
             const mockUser = { id: 'user_1' } as User;

@@ -12,8 +12,8 @@ import { DataLookup } from './entities/data-lookup.entity';
 import { DataSource } from 'typeorm';
 import { AuthService } from './services/auth.service';
 import { PassportModule } from '@nestjs/passport';
-import { JwtModule } from '@nestjs/jwt';
-import { jwtConstants } from './auth/constants';
+import { JwtModule, JwtModuleOptions } from '@nestjs/jwt';
+import { jwtConstantsProvider } from './auth/constants';
 import { JwtStrategy } from './auth/jwt.strategy';
 import { UsersService } from './services/users.service';
 import { AuthController } from './controllers/auth.controller';
@@ -41,9 +41,12 @@ const config = new ConfigService();
     TypeOrmModule.forRoot(dataSrouceOptions),
     TypeOrmModule.forFeature([User, SubscriptionPlan, CustomerSubscription, Invoice, Payment, DataLookup, SystemSetting, PaymentMethod]),
     PassportModule,
-    JwtModule.register({
-      secret: jwtConstants.secret,
-      signOptions: { expiresIn: '60m' },
+    JwtModule.registerAsync({
+      inject: [ConfigService],
+      useFactory: async (configService: ConfigService): Promise<JwtModuleOptions> => ({
+        secret: configService.get<string>('SECRET'),
+        signOptions: { expiresIn: '60s' },
+      }),
     }),
     BullModule.forRoot({
       redis: {
@@ -63,7 +66,7 @@ const config = new ConfigService();
   controllers: [SubscriptionController, AuthController, SystemSettingController, DataLookupController],
   providers: [SubscriptionService, AuthService, StripeService, NotificationsService,
     UsersService, SystemSettingService, DataLookupService, BillingService,
-    JwtStrategy, JwtAuthGuard, PaymentProcessor, PaymentService],
+    JwtStrategy, JwtAuthGuard, PaymentProcessor, PaymentService, jwtConstantsProvider],
 })
 export class AppModule {
   constructor(private dataSource: DataSource) { }

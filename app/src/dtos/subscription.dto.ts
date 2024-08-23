@@ -9,14 +9,6 @@ export class CreateSubscriptionDto {
   @ApiProperty({ description: 'UUID of the subscription plan' })
   @IsUUID()
   subscriptionPlanId: string;
-
-  @ApiProperty({ description: 'UUID of the subscription status' })
-  @IsUUID()
-  subscriptionStatusId: string;
-
-  @ApiProperty({ description: 'Start date of the subscription', type: 'string', format: 'date-time' })
-  @IsNotEmpty()
-  startDate: Date;
 }
 
 export class UpdateSubscriptionStatusDto {
