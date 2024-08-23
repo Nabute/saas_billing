@@ -1,0 +1,14 @@
+[
+    {
+        "name": "Payment Retry Max Retries",
+        "code": "PAYMENT_RETRY_MAX_RETRIES",
+        "defaultValue": "5",
+        "currentValue": "5"
+    },
+    {
+        "name": "Payment Retry Delay in Minutes",
+        "code": "PAYMENT_RETRY_DELAY_MINUTES",
+        "defaultValue": "60",
+        "currentValue": "60"
+    }
+]

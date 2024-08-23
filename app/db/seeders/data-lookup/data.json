@@ -250,5 +250,101 @@
         "is_default": false,
         "is_active": true,
         "remark": "No further actions can be taken on this subscription."
+    },
+    {
+        "type": "invoice_status",
+        "name": "Pending",
+        "value": "invoice_status_pending",
+        "description": "This invoice is pending and payment has not yet been made.",
+        "category": "INVOICE",
+        "note": null,
+        "index": 0,
+        "is_default": true,
+        "is_active": true,
+        "remark": null
+    },
+    {
+        "type": "invoice_status",
+        "name": "Paid",
+        "value": "invoice_status_paid",
+        "description": "This invoice has been paid.",
+        "category": "INVOICE",
+        "note": null,
+        "index": 1,
+        "is_default": false,
+        "is_active": true,
+        "remark": null
+    },
+    {
+        "type": "invoice_status",
+        "name": "Failed",
+        "value": "invoice_status_failed",
+        "description": "This invoice has failed payment and is not completed.",
+        "category": "INVOICE",
+        "note": null,
+        "index": 2,
+        "is_default": false,
+        "is_active": true,
+        "remark": null
+    },
+    {
+        "type": "payment_status",
+        "name": "Pending",
+        "value": "payment_status_pending",
+        "description": "This payment is pending and has not been processed yet.",
+        "category": "PAYMENT",
+        "note": null,
+        "index": 0,
+        "is_default": true,
+        "is_active": true,
+        "remark": null
+    },
+    {
+        "type": "payment_status",
+        "name": "Waiting for Verification",
+        "value": "payment_status_waiting_for_verification",
+        "description": "This payment is waiting for verification before being processed.",
+        "category": "PAYMENT",
+        "note": null,
+        "index": 1,
+        "is_default": false,
+        "is_active": true,
+        "remark": null
+    },
+    {
+        "type": "payment_status",
+        "name": "Verified",
+        "value": "payment_status_verified",
+        "description": "This payment has been verified and processed successfully.",
+        "category": "PAYMENT",
+        "note": null,
+        "index": 2,
+        "is_default": false,
+        "is_active": true,
+        "remark": null
+    },
+    {
+        "type": "payment_method_type",
+        "name": "Online",
+        "value": "payment_method_type_online",
+        "description": "This payment method is an online payment method.",
+        "category": "PAYMENT_METHOD",
+        "note": null,
+        "index": 0,
+        "is_default": true,
+        "is_active": true,
+        "remark": null
+    },
+    {
+        "type": "payment_method_type",
+        "name": "Bank Transfer",
+        "value": "payment_method_type_bank_transfer",
+        "description": "This payment method involves a bank transfer.",
+        "category": "PAYMENT_METHOD",
+        "note": null,
+        "index": 1,
+        "is_default": false,
+        "is_active": true,
+        "remark": null
     }
 ]

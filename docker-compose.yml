@@ -8,6 +8,8 @@ services:
     ports:
       - '3000:3000'
     depends_on:
+      redis:
+        condition: service_healthy
       postgres:
         condition: service_healthy
     volumes:
@@ -41,6 +43,17 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+  
+  redis:
+    image: redis:6-alpine
+    container_name: redis
+    ports:
+      - '6363:6379'
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   billing_dev_postgres_data:

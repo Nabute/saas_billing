@@ -21,4 +21,10 @@ export class CustomerSubscription extends BaseEntity {
 
   @Column({ type: 'timestamp', nullable: true })
   endDate: Date;
+
+  @Column({ type: 'int', default: 0 })
+  retryCount: number;
+
+  @Column({ type: 'timestamp', nullable: true })
+  nextRetry: Date;
 }

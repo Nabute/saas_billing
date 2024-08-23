@@ -20,6 +20,20 @@ export class SubscriptionController {
     return this.subscriptionService.createCustomerSubscription(createSubscriptionDto);
   }
 
+  @Post('plan')
+  @ApiOperation({ summary: 'Create a new subscription plan' })
+  @ApiResponse({ status: 201, description: 'The subscription plan has been successfully created.', type: SubscriptionPlan })
+  createSubscriptionPlan(@Body() createSubscriptionPlanDto: CreateSubscriptionPlanDto): Promise<SubscriptionPlan> {
+    return this.subscriptionService.createSubscriptionPlan(createSubscriptionPlanDto);
+  }
+
+  @Get('plans')
+  @ApiOperation({ summary: 'Get all active subscription plans' })
+  @ApiResponse({ status: 200, description: 'List of subscription plans.', type: [SubscriptionPlan] })
+  plans(): Promise<SubscriptionPlan[]> {
+    return this.subscriptionService.getSubscriptionPlans();
+  }
+
   @Get(':userId')
   @ApiOperation({ summary: 'Get all subscriptions for a user' })
   @ApiResponse({ status: 200, description: 'List of subscriptions for the user.', type: [CustomerSubscription] })
@@ -37,19 +51,6 @@ export class SubscriptionController {
     return this.subscriptionService.updateSubscriptionStatus(subscriptionId, updateSubscriptionStatusDto);
   }
 
-  @Post('plan')
-  @ApiOperation({ summary: 'Create a new subscription plan' })
-  @ApiResponse({ status: 201, description: 'The subscription plan has been successfully created.', type: SubscriptionPlan })
-  createSubscriptionPlan(@Body() createSubscriptionPlanDto: CreateSubscriptionPlanDto): Promise<SubscriptionPlan> {
-    return this.subscriptionService.createSubscriptionPlan(createSubscriptionPlanDto);
-  }
-
-  @Get('plans')
-  @ApiOperation({ summary: 'Get all subscription plans' })
-  @ApiResponse({ status: 200, description: 'List of subscription plans.', type: [SubscriptionPlan] })
-  getSubscriptionPlans(): Promise<SubscriptionPlan[]> {
-    return this.subscriptionService.getSubscriptionPlans();
-  }
 
   @Get('plan/:id')
   @ApiOperation({ summary: 'Get a subscription plan by ID' })
