@@ -30,6 +30,7 @@ import { BullModule } from '@nestjs/bull';
 import { JobQueues } from './utils/enums';
 import { PaymentMethod } from './entities/payment-method.entity';
 import { StripeService } from './services/stripe.service';
+import { BillingService } from './services/billing.service';
 
 const config = new ConfigService();
 @Module({
@@ -49,13 +50,18 @@ const config = new ConfigService();
         port: parseInt(config.get('REDIS_PORT'), 10),
       },
     }),
-    BullModule.registerQueue({
+    BullModule.registerQueue(
+      {
       name: JobQueues.PAYMENT_RETRY,
-    }),
+      },
+      {
+        name: JobQueues.BILLING,
+      },
+    ),
   ],
   controllers: [SubscriptionController, AuthController, SystemSettingController, DataLookupController],
   providers: [SubscriptionService, AuthService, StripeService,
-    UsersService, SystemSettingService, DataLookupService,
+    UsersService, SystemSettingService, DataLookupService, BillingService,
     JwtStrategy, JwtAuthGuard, PaymentProcessor, PaymentService],
 })
 export class AppModule {

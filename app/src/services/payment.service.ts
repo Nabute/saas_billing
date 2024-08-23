@@ -1,12 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Invoice } from '../entities/invoice.entity';
 import { Payment } from '../entities/payment.entity';
 import { CustomerSubscription } from '../entities/customer.entity';
 import { StripeService } from './stripe.service';
-import { SubscriptionService } from './subscription.service';
 import { InvoiceStatus, JobQueues, PaymentMethodCode, PaymentRetrySettings, PaymentStatus, SubscriptionStatus } from '../utils/enums';
 import { DataLookup } from '../entities/data-lookup.entity';
 import { PaymentMethod } from 'src/entities/payment-method.entity';
@@ -214,26 +212,5 @@ export class PaymentService {
 
         subscription.subscriptionStatus = activeStatus;
         await this.customerSubscriptionRepository.save(subscription);
-    }
-
-    @Cron(CronExpression.EVERY_HOUR)
-    async retryFailedPayments() {
-        const failedSubscriptions = await this.customerSubscriptionRepository.find({
-            where: { subscriptionStatus: { value: SubscriptionStatus.OVERDUE } },
-        });
-
-        for (const subscription of failedSubscriptions) {
-            try {
-                // Retry payment using Stripe or another payment service
-                const paymentResult = await this.retryPayment(subscription.id);
-                if (paymentResult.success) {
-                    await this.confirmPayment(subscription.id);
-                } else {
-                    await this.scheduleRetry(subscription.id);
-                }
-            } catch (error) {
-                console.error(`Failed to retry payment for subscription ID ${subscription.id}:`, error);
-            }
-        }
     }
 }
