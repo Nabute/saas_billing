@@ -11,7 +11,7 @@ import {
     UpdateSubscriptionPlanDto,
     UpdateSubscriptionStatusDto,
 } from '../dtos/subscription.dto';
-import { ObjectState, SubscriptionPlanState } from '../utils/enums';
+import { ObjectState, SubscriptionPlanState, SubscriptionStatus } from '../utils/enums';
 import { GenericService } from './base.service';
 
 @Injectable()
@@ -38,7 +38,7 @@ export class SubscriptionService extends GenericService<SubscriptionPlan> {
      * @throws NotFoundException if the user, subscription plan, or subscription status is not found.
      */
     async createCustomerSubscription(createSubscriptionDto: CreateSubscriptionDto): Promise<CustomerSubscription> {
-        const { userId, subscriptionPlanId, subscriptionStatusId, startDate } = createSubscriptionDto;
+        const { userId, subscriptionPlanId } = createSubscriptionDto;
 
         const user = await this.userRepository.findOneBy({ id: userId });
         if (!user) {
@@ -50,18 +50,18 @@ export class SubscriptionService extends GenericService<SubscriptionPlan> {
             throw new NotFoundException(`Subscription plan with ID ${subscriptionPlanId} not found`);
         }
 
-        const subscriptionStatus = await this.dataLookupRepository.findOneBy({ id: subscriptionStatusId });
+        const subscriptionStatus = await this.dataLookupRepository.findOneBy({ value: SubscriptionStatus.PENDING });
         if (!subscriptionStatus) {
-            throw new NotFoundException(`Subscription status with ID ${subscriptionStatusId} not found`);
+            throw new NotFoundException(`Unable to get default subscription status. Please load fixtures`);
         }
 
         const newSubscription = this.customerSubscriptionRepository.create({
             user,
             subscriptionPlan,
             subscriptionStatus,
-            startDate,
             endDate: null,
-            nextBillingDate: new Date(Date.now() + subscriptionPlan.billingCycleDays * 24 * 60 * 60 * 1000), // Converted to days
+            startDate: Date.now(),
+            nextBillingDate: new Date(Date.now() + subscriptionPlan.billingCycleDays * 24 * 60 * 60 * 1000).getTime(),
         });
 
         return this.customerSubscriptionRepository.save(newSubscription);

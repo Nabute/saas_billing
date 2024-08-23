@@ -62,7 +62,7 @@ export class GenericService<T extends BaseEntity> {
             entity.objectState = defaultState;
         }
 
-        return await this.repository.save(entity);
+        return this.repository.save(entity);
     }
 
     /**

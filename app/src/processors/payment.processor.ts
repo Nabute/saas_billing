@@ -1,14 +1,22 @@
 import { Processor, Process } from '@nestjs/bull';
 import { Job } from 'bull';
 import { PaymentService } from '../services/payment.service';
-import { JobQueues } from 'src/utils/enums';
+import { JobQueues } from '../utils/enums';
 
+/**
+ * PaymentProcessor is responsible for processing payment retry jobs.
+ */
 @Processor(JobQueues.PAYMENT_RETRY)
 export class PaymentProcessor {
     constructor(private readonly paymentService: PaymentService) { }
 
+    /**
+     * Handles the payment retry process.
+     * 
+     * @param job - The Bull job containing the subscription ID and attempt number.
+     */
     @Process()
-    async handleRetry(job: Job) {
+    async handleRetry(job: Job): Promise<void> {
         const { subscriptionId, attempt } = job.data;
 
         try {
@@ -23,7 +31,6 @@ export class PaymentProcessor {
                 await this.paymentService.confirmPayment(subscriptionId);
             }
         } catch (error) {
-            console.error(`Error processing retry for subscription ID ${subscriptionId}:`, error);
             await this.paymentService.scheduleRetry(subscriptionId, attempt + 1);
         }
     }
