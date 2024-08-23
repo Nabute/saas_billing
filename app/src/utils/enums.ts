@@ -76,5 +76,6 @@ export enum PaymentRetrySettings {
 }
 
 export enum JobQueues {
-    PAYMENT_RETRY = "payment-retry"
+    PAYMENT_RETRY = "payment-retry",
+    BILLING = "billing"
 }
