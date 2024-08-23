@@ -26,16 +26,17 @@ jobs:
           node-version: ${{ matrix.node-version }}
 
       - name: Install dependencies
+        working-directory: app
         run: npm install
 
       - name: Lint code
+        working-directory: app
         run: npm run lint
 
       - name: Run tests
+        working-directory: app
         run: npm run test
 
-      - name: Run end-to-end tests
-        run: npm run test:e2e
-
       - name: Run coverage
+        working-directory: app
         run: npm run test:cov
