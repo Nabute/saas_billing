@@ -31,6 +31,7 @@ import { JobQueues } from './utils/enums';
 import { PaymentMethod } from './entities/payment-method.entity';
 import { StripeService } from './services/stripe.service';
 import { BillingService } from './services/billing.service';
+import { NotificationsService } from './services/notifications.service';
 
 const config = new ConfigService();
 @Module({
@@ -60,7 +61,7 @@ const config = new ConfigService();
     ),
   ],
   controllers: [SubscriptionController, AuthController, SystemSettingController, DataLookupController],
-  providers: [SubscriptionService, AuthService, StripeService,
+  providers: [SubscriptionService, AuthService, StripeService, NotificationsService,
     UsersService, SystemSettingService, DataLookupService, BillingService,
     JwtStrategy, JwtAuthGuard, PaymentProcessor, PaymentService],
 })

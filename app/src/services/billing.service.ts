@@ -8,6 +8,7 @@ import { SubscriptionPlan } from '../entities/subscription.entity';
 import { InvoiceStatus, JobQueues, SubscriptionStatus } from '../utils/enums';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
+import { NotificationsService } from './notifications.service';
 
 @Injectable()
 export class BillingService {
@@ -21,6 +22,7 @@ export class BillingService {
         @InjectRepository(SubscriptionPlan)
         private readonly subscriptionPlanRepository: Repository<SubscriptionPlan>,
         @InjectQueue(JobQueues.BILLING) private billingQueue: Queue,
+        private readonly notificationsService: NotificationsService,
     ) { }
 
     async scheduleInvoiceGeneration(): Promise<void> {
@@ -50,6 +52,9 @@ export class BillingService {
         });
 
         await this.invoiceRepository.save(invoice);
+
+        // Send notification after invoice is generated.
+        await this.notificationsService.sendInvoiceGeneratedEmail(subscription.user.email, invoice.id);
 
         // Update subscription's next billing date
         subscription.nextBillingDate = this.calculateNextBillingDate(subscription.nextBillingDate, subscription.subscriptionPlan.billingCycleDays);
