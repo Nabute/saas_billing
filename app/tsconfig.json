@@ -10,12 +10,18 @@
     "sourceMap": true,
     "outDir": "./dist",
     "baseUrl": "./",
+    "paths": {
+      "@app/*": ["src/*"],
+      "@test/*": ["tests/*"]
+    },
     "incremental": true,
     "skipLibCheck": true,
     "strictNullChecks": false,
     "noImplicitAny": false,
     "strictBindCallApply": false,
     "forceConsistentCasingInFileNames": false,
-    "noFallthroughCasesInSwitch": false
-  }
+    "noFallthroughCasesInSwitch": false,
+    },
+    "include": ["src/**/*", "tests/**/*"],
+    "exclude": ["node_modules"]
 }

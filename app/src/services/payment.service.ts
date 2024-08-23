@@ -7,8 +7,8 @@ import { CustomerSubscription } from '../entities/customer.entity';
 import { StripeService } from './stripe.service';
 import { InvoiceStatus, JobQueues, PaymentMethodCode, PaymentRetrySettings, PaymentStatus, SubscriptionStatus } from '../utils/enums';
 import { DataLookup } from '../entities/data-lookup.entity';
-import { PaymentMethod } from 'src/entities/payment-method.entity';
-import { SystemSetting } from 'src/entities/system-settings.entity';
+import { PaymentMethod } from '../entities/payment-method.entity';
+import { SystemSetting } from '../entities/system-settings.entity';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import Stripe from 'stripe';
@@ -34,6 +34,14 @@ export class PaymentService {
         private readonly notificationsService: NotificationsService,
     ) { }
 
+    /**
+     * Handles successful payment processing.
+     * 
+     * @param subscriptionId - The ID of the subscription associated with the payment.
+     * @param paymentAmount - The amount paid.
+     * @param paymentMethodCode - The code of the payment method used.
+     * @throws NotFoundException if the related invoice or payment method is not found.
+     */
     async handleSuccessfulPayment(subscriptionId: string, paymentAmount: number, paymentMethodCode: string): Promise<void> {
         const invoice = await this.invoiceRepository.findOne({
             where: { subscription: { id: subscriptionId }, status: { value: InvoiceStatus.PENDING } },
@@ -44,9 +52,9 @@ export class PaymentService {
             throw new NotFoundException(`Invoice not found for subscription ID ${subscriptionId}`);
         }
 
-        // Record the payment
-        const verifiedPaymentStatus = await this.dataLookupRepository.findOne({ where: { value: PaymentStatus.VERIFIED } })
-        const paymentMethod = await this.paymentMethodRepository.findOne({ where: { code: paymentMethodCode } })
+        const verifiedPaymentStatus = await this.dataLookupRepository.findOne({ where: { value: PaymentStatus.VERIFIED } });
+        const paymentMethod = await this.paymentMethodRepository.findOne({ where: { code: paymentMethodCode } });
+
         const payment = this.paymentRepository.create({
             invoice,
             paymentMethod,
@@ -57,17 +65,20 @@ export class PaymentService {
 
         await this.paymentRepository.save(payment);
 
-        // Update the invoice status to 'paid'
-        const paidInvoiceStatus = await this.dataLookupRepository.findOne({ where: { value: InvoiceStatus.PAID } })
+        const paidInvoiceStatus = await this.dataLookupRepository.findOne({ where: { value: InvoiceStatus.PAID } });
         invoice.status = paidInvoiceStatus;
         invoice.paymentDate = new Date();
         await this.invoiceRepository.save(invoice);
 
-        // Send payment success notification
         await this.notificationsService.sendPaymentSuccessEmail(invoice.subscription.user.email, invoice.subscription.subscriptionPlan.name);
     }
 
-    // Handle failed payment event
+    /**
+     * Handles failed payment processing.
+     * 
+     * @param subscriptionId - The ID of the subscription associated with the failed payment.
+     * @throws NotFoundException if the subscription is not found.
+     */
     async handleFailedPayment(subscriptionId: string): Promise<void> {
         const subscription = await this.customerSubscriptionRepository.findOne({
             where: { id: subscriptionId },
@@ -78,20 +89,25 @@ export class PaymentService {
             throw new NotFoundException(`Subscription with ID ${subscriptionId} not found`);
         }
 
-        // Mark subscription as overdue or retry payment logic here
         const overdueStatus = await this.dataLookupRepository.findOne({
             where: { type: SubscriptionStatus.TYPE, value: SubscriptionStatus.OVERDUE },
         });
+
         subscription.subscriptionStatus = overdueStatus;
         await this.customerSubscriptionRepository.save(subscription);
 
-        // Send payment failure notification
         await this.notificationsService.sendPaymentFailureEmail(subscription.user.email, subscription.subscriptionPlan.name);
-        // schedule a retry
         await this.scheduleRetry(subscriptionId);
     }
 
-    async scheduleRetry(subscriptionId: string, attempt = 1) {
+    /**
+     * Schedules a retry for a failed payment.
+     * 
+     * @param subscriptionId - The ID of the subscription to retry payment for.
+     * @param attempt - The current retry attempt number.
+     * @throws NotFoundException if the subscription is not found.
+     */
+    async scheduleRetry(subscriptionId: string, attempt = 1): Promise<void> {
         const subscription = await this.customerSubscriptionRepository.findOne({
             where: { id: subscriptionId },
         });
@@ -100,16 +116,15 @@ export class PaymentService {
             throw new NotFoundException(`Subscription with ID ${subscriptionId} not found`);
         }
 
-        // Check if the maximum number of retries has been reached
-        const maxRetriesSetting = await this.settingRepository.findOne({ where: { code: PaymentRetrySettings.MAX_RETRIES } })
+        const maxRetriesSetting = await this.settingRepository.findOne({ where: { code: PaymentRetrySettings.MAX_RETRIES } });
         if (subscription.retryCount >= parseInt(maxRetriesSetting.currentValue)) {
             console.log(`Subscription ID ${subscription.id} has reached the maximum number of retries.`);
             return;
         }
 
-        // Increment the retry count and set the next retry time
-        const retryDelaySetting = await this.settingRepository.findOne({ where: { code: PaymentRetrySettings.RETRY_DELAY_MINUTES } })
+        const retryDelaySetting = await this.settingRepository.findOne({ where: { code: PaymentRetrySettings.RETRY_DELAY_MINUTES } });
         const nextRun = parseInt(retryDelaySetting.currentValue) * 60 * 1000;
+
         await this.paymentRetryQueue.add(
             {
                 subscriptionId,
@@ -119,16 +134,22 @@ export class PaymentService {
                 delay: nextRun,
             },
         );
+
         subscription.retryCount = attempt;
         subscription.nextRetry = new Date(Date.now() + nextRun);
-
         await this.customerSubscriptionRepository.save(subscription);
 
         console.log(`Scheduled retry #${subscription.retryCount} for subscription ID ${subscription.id} at ${subscription.nextRetry}`);
     }
 
+    /**
+     * Attempts to retry a failed payment.
+     * 
+     * @param subscriptionId - The ID of the subscription to retry payment for.
+     * @returns An object indicating the success status of the payment retry.
+     * @throws NotFoundException if no unpaid invoice is found for the subscription.
+     */
     async retryPayment(subscriptionId: string): Promise<{ success: boolean }> {
-        // Find the latest unpaid invoice for the subscription
         const invoice = await this.invoiceRepository.findOne({
             where: { subscription: { id: subscriptionId }, status: { value: InvoiceStatus.FAILED } },
             order: { paymentDueDate: 'DESC' },
@@ -139,11 +160,10 @@ export class PaymentService {
         }
 
         try {
-            // Attempt to charge the customer via Stripe for the invoice amount
             const paymentIntent = await this.stripeService.createPaymentIntent({
                 amount: Math.round(invoice.amount * 100),
                 currency: 'usd',
-                payment_method_types: ['card'], // Assuming card payment
+                payment_method_types: ['card'],
                 description: `Payment for Invoice #${invoice.id}`,
                 metadata: {
                     invoiceId: invoice.id,
@@ -152,15 +172,12 @@ export class PaymentService {
             });
 
             if (paymentIntent.status === 'succeeded') {
-                // Update the invoice status to 'paid'
                 const paidStatus = await this.dataLookupRepository.findOne({ where: { value: InvoiceStatus.PAID } });
                 invoice.status = paidStatus;
                 invoice.paymentDate = new Date();
                 await this.invoiceRepository.save(invoice);
 
-                //TODO: needs more work here.
                 const paymentMethod = await this.getDefaultPaymentMethod();
-                // Create a new Payment record
                 const payment = this.paymentRepository.create({
                     amount: invoice.amount,
                     status: paidStatus,
@@ -174,7 +191,6 @@ export class PaymentService {
 
                 return { success: true };
             } else {
-                // If payment did not succeed, return false
                 return { success: false };
             }
         } catch (error) {
@@ -183,10 +199,21 @@ export class PaymentService {
         }
     }
 
+    /**
+     * Retrieves the default payment method for the system.
+     * 
+     * @returns The PaymentMethod entity corresponding to the default payment method.
+     */
     async getDefaultPaymentMethod(): Promise<PaymentMethod> {
-        return this.paymentMethodRepository.findOne({ where: { code: PaymentMethodCode.STRIPE } })
+        return this.paymentMethodRepository.findOne({ where: { code: PaymentMethodCode.STRIPE } });
     }
 
+    /**
+     * Extracts customer information from the Stripe customer object.
+     * 
+     * @param customer - The Stripe customer object or customer ID.
+     * @returns The customer's name or a default value if not available.
+     */
     getCustomerInfo(customer: string | Stripe.Customer | Stripe.DeletedCustomer | null): string | null {
         if (typeof customer === 'string') {
             return customer;
@@ -199,6 +226,12 @@ export class PaymentService {
         return 'Stripe Customer';
     }
 
+    /**
+     * Confirms a successful payment and updates the subscription status to active.
+     * 
+     * @param subscriptionId - The ID of the subscription to confirm payment for.
+     * @throws NotFoundException if the subscription or active status is not found.
+     */
     async confirmPayment(subscriptionId: string): Promise<void> {
         const subscription = await this.customerSubscriptionRepository.findOne({
             where: { id: subscriptionId },

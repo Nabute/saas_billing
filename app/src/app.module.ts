@@ -21,7 +21,7 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { User } from './entities/user.entity';
 import { ScheduleModule } from '@nestjs/schedule';
 import { SystemSettingController, DataLookupController } from './controllers/core.controller';
-import { DataLookupService } from './services/core.service';
+import { DataLookupService } from './services/data-lookup.service';
 import { SystemSettingService } from './services/setting.service';
 import { SystemSetting } from './entities/system-settings.entity';
 import { PaymentProcessor } from './processors/payment.processor';
