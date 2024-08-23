@@ -12,6 +12,7 @@ import { SystemSetting } from 'src/entities/system-settings.entity';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import Stripe from 'stripe';
+import { NotificationsService } from './notifications.service';
 
 @Injectable()
 export class PaymentService {
@@ -30,6 +31,7 @@ export class PaymentService {
         private readonly settingRepository: Repository<SystemSetting>,
         @InjectQueue(JobQueues.PAYMENT_RETRY) private paymentRetryQueue: Queue,
         private readonly stripeService: StripeService,
+        private readonly notificationsService: NotificationsService,
     ) { }
 
     async handleSuccessfulPayment(subscriptionId: string, paymentAmount: number, paymentMethodCode: string): Promise<void> {
@@ -60,6 +62,9 @@ export class PaymentService {
         invoice.status = paidInvoiceStatus;
         invoice.paymentDate = new Date();
         await this.invoiceRepository.save(invoice);
+
+        // Send payment success notification
+        await this.notificationsService.sendPaymentSuccessEmail(invoice.subscription.user.email, invoice.subscription.subscriptionPlan.name);
     }
 
     // Handle failed payment event
@@ -80,7 +85,9 @@ export class PaymentService {
         subscription.subscriptionStatus = overdueStatus;
         await this.customerSubscriptionRepository.save(subscription);
 
-        // Optionally, schedule a retry
+        // Send payment failure notification
+        await this.notificationsService.sendPaymentFailureEmail(subscription.user.email, subscription.subscriptionPlan.name);
+        // schedule a retry
         await this.scheduleRetry(subscriptionId);
     }
 
