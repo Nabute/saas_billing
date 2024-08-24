@@ -35,6 +35,7 @@ import { PaymentMethod } from './entities/payment-method.entity';
 import { StripeService } from './services/stripe.service';
 import { BillingService } from './services/billing.service';
 import { NotificationsService } from './services/notifications.service';
+import { PaymentsController } from './controllers/payment.controller';
 
 const config = new ConfigService();
 @Module({
@@ -82,6 +83,7 @@ const config = new ConfigService();
     AuthController,
     SystemSettingController,
     DataLookupController,
+    PaymentsController,
   ],
   providers: [
     SubscriptionService,
