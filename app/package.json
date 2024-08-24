@@ -37,6 +37,7 @@
     "migration:generate": "npm run typeorm -- migration:generate",
     "migration:run": "npm run typeorm -- migration:run",
     "migration:revert": "npm run typeorm -- migration:revert",
+    "load:fixtures": "ts-node ./node_modules/typeorm-extension/bin/cli.cjs seed:run -d db/data-source.ts",
     "seed:data-lookup": "ts-node ./db/seeders/data-lookup/create.runner.ts",
     "seed:settings": "ts-node ./db/seeders/settings/create.runner.ts"
   },
