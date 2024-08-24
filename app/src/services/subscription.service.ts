@@ -1,58 +1,40 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import { EntityManager, Repository, DataSource } from 'typeorm';
 import { CustomerSubscription } from '../entities/customer.entity';
 import { User } from '../entities/user.entity';
 import { SubscriptionPlan } from '../entities/subscription.entity';
 import { DataLookup } from '../entities/data-lookup.entity';
 import {
-  CreateSubscriptionDto,
-  CreateSubscriptionPlanDto,
-  UpdateSubscriptionPlanDto,
+    CreateSubscriptionDto,
   UpdateSubscriptionStatusDto,
 } from '../dtos/subscription.dto';
-import {
-  ObjectState,
-  SubscriptionPlanState,
-  SubscriptionStatus,
-} from '../utils/enums';
 import { GenericService } from './base.service';
+import { SubscriptionStatus } from '../utils/enums';
 
 @Injectable()
-export class SubscriptionService extends GenericService<SubscriptionPlan> {
+export class CustomerSubscriptionService extends GenericService<CustomerSubscription> {
   constructor(
     @InjectRepository(CustomerSubscription)
-    private readonly customerSubscriptionRepository: Repository<CustomerSubscription>,
-    @InjectRepository(User)
-    private readonly userRepository: Repository<User>,
-    @InjectRepository(SubscriptionPlan)
-    private readonly subscriptionPlanRepository: Repository<SubscriptionPlan>,
-    @InjectRepository(DataLookup)
-    private readonly dataLookupRepository: Repository<DataLookup>,
+      private readonly customerSubscriptionRepository: Repository<CustomerSubscription>,
     dataSource: DataSource,
   ) {
-    super(SubscriptionPlan, dataSource);
+      super(CustomerSubscription, dataSource);
   }
 
-  /**
-   * Creates a new customer subscription.
-   *
-   * @param createSubscriptionDto - DTO containing data to create a customer subscription.
-   * @returns The newly created CustomerSubscription entity.
-   * @throws NotFoundException if the user, subscription plan, or subscription status is not found.
-   */
   async createCustomerSubscription(
     createSubscriptionDto: CreateSubscriptionDto,
+      manager: EntityManager,
   ): Promise<CustomerSubscription> {
     const { userId, subscriptionPlanId } = createSubscriptionDto;
 
-    const user = await this.userRepository.findOneBy({ id: userId });
+      const user = await manager.findOne(User, { where: { id: userId } });
     if (!user) {
       throw new NotFoundException(`User with ID ${userId} not found`);
     }
 
-    const subscriptionPlan = await this.subscriptionPlanRepository.findOneBy({
-      id: subscriptionPlanId,
+      const subscriptionPlan = await manager.findOne(SubscriptionPlan, {
+          where: { id: subscriptionPlanId },
     });
     if (!subscriptionPlan) {
       throw new NotFoundException(
@@ -60,8 +42,8 @@ export class SubscriptionService extends GenericService<SubscriptionPlan> {
       );
     }
 
-    const subscriptionStatus = await this.dataLookupRepository.findOneBy({
-      value: SubscriptionStatus.PENDING,
+      const subscriptionStatus = await manager.findOne(DataLookup, {
+          where: { value: SubscriptionStatus.PENDING },
     });
     if (!subscriptionStatus) {
       throw new NotFoundException(
@@ -73,52 +55,38 @@ export class SubscriptionService extends GenericService<SubscriptionPlan> {
       user,
       subscriptionPlan,
       subscriptionStatus,
-      endDate: null,
-      startDate: Date.now(),
+        startDate: new Date(),
       nextBillingDate: new Date(
         Date.now() + subscriptionPlan.billingCycleDays * 24 * 60 * 60 * 1000,
-      ).getTime(),
+        ),
     });
 
-    return this.customerSubscriptionRepository.save(newSubscription);
+      return manager.save(CustomerSubscription, newSubscription);
   }
 
-  /**
-   * Retrieves all customer subscriptions for a given user.
-   *
-   * @param userId - The ID of the user whose subscriptions are to be retrieved.
-   * @returns An array of CustomerSubscription entities.
-   * @throws NotFoundException if the user is not found.
-   */
   async getCustomerSubscriptions(
     userId: string,
+      manager: EntityManager,
   ): Promise<CustomerSubscription[]> {
-    const user = await this.userRepository.findOneBy({ id: userId });
+      const user = await manager.findOne(User, { where: { id: userId } });
     if (!user) {
       throw new NotFoundException(`User with ID ${userId} not found`);
     }
 
-    return this.customerSubscriptionRepository.find({
+      return manager.find(CustomerSubscription, {
       where: { user },
       relations: ['subscriptionPlan', 'subscriptionStatus'],
     });
   }
 
-  /**
-   * Updates the status of a customer subscription.
-   *
-   * @param subscriptionId - The ID of the subscription to update.
-   * @param updateSubscriptionStatusDto - DTO containing the new subscription status and optional end date.
-   * @returns The updated CustomerSubscription entity.
-   * @throws NotFoundException if the subscription or subscription status is not found.
-   */
   async updateSubscriptionStatus(
     subscriptionId: string,
     updateSubscriptionStatusDto: UpdateSubscriptionStatusDto,
+      manager: EntityManager,
   ): Promise<CustomerSubscription> {
     const { subscriptionStatusId, endDate } = updateSubscriptionStatusDto;
 
-    const subscription = await this.customerSubscriptionRepository.findOne({
+      const subscription = await manager.findOne(CustomerSubscription, {
       where: { id: subscriptionId },
       relations: ['subscriptionStatus'],
     });
@@ -129,8 +97,8 @@ export class SubscriptionService extends GenericService<SubscriptionPlan> {
       );
     }
 
-    const subscriptionStatus = await this.dataLookupRepository.findOneBy({
-      id: subscriptionStatusId,
+      const subscriptionStatus = await manager.findOne(DataLookup, {
+          where: { id: subscriptionStatusId },
     });
     if (!subscriptionStatus) {
       throw new NotFoundException(
@@ -141,118 +109,6 @@ export class SubscriptionService extends GenericService<SubscriptionPlan> {
     subscription.subscriptionStatus = subscriptionStatus;
     subscription.endDate = endDate || subscription.endDate;
 
-    return this.customerSubscriptionRepository.save(subscription);
-  }
-
-  /**
-   * Creates a new subscription plan.
-   *
-   * @param createSubscriptionPlanDto - DTO containing data to create a new subscription plan.
-   * @returns The newly created SubscriptionPlan entity.
-   * @throws NotFoundException if the default subscription plan state is not found.
-   */
-  async createSubscriptionPlan(
-    createSubscriptionPlanDto: CreateSubscriptionPlanDto,
-  ): Promise<SubscriptionPlan> {
-    const { name, description, price, billingCycleDays, prorate } =
-      createSubscriptionPlanDto;
-
-    const planDefaultState = await this.dataLookupRepository.findOneBy({
-      type: SubscriptionPlanState.TYPE,
-      is_default: true,
-    });
-    if (!planDefaultState) {
-      throw new NotFoundException(
-        `Unable to find subscription plan default state, please seed fixture data.`,
-      );
-    }
-
-    const newPlan = this.subscriptionPlanRepository.create({
-      name,
-      description,
-      price,
-      billingCycleDays,
-      status: planDefaultState,
-      prorate,
-    });
-
-    return this.saveEntityWithDefaultState(newPlan, ObjectState.TYPE);
-  }
-
-  /**
-   * Retrieves all subscription plans.
-   *
-   * @returns An array of SubscriptionPlan entities.
-   */
-  async getSubscriptionPlans(): Promise<SubscriptionPlan[]> {
-    return this.subscriptionPlanRepository.find({
-      relations: ['status', 'objectState'],
-    });
-  }
-
-  /**
-   * Retrieves a subscription plan by its ID.
-   *
-   * @param id - The ID of the subscription plan to retrieve.
-   * @returns The found SubscriptionPlan entity.
-   * @throws NotFoundException if the subscription plan is not found.
-   */
-  async getSubscriptionPlanById(id: string): Promise<SubscriptionPlan> {
-    const plan = await this.subscriptionPlanRepository.findOne({
-      where: { id },
-      relations: ['status', 'objectState'],
-    });
-
-    if (!plan) {
-      throw new NotFoundException(`Subscription plan with ID ${id} not found`);
-    }
-
-    return plan;
-  }
-
-  /**
-   * Updates an existing subscription plan.
-   *
-   * @param id - The ID of the subscription plan to update.
-   * @param updateSubscriptionPlanDto - DTO containing the updated data for the subscription plan.
-   * @returns The updated SubscriptionPlan entity.
-   * @throws NotFoundException if the subscription plan or status is not found.
-   */
-  async updateSubscriptionPlan(
-    id: string,
-    updateSubscriptionPlanDto: UpdateSubscriptionPlanDto,
-  ): Promise<SubscriptionPlan> {
-    const plan = await this.getSubscriptionPlanById(id);
-
-    const { name, description, price, billingCycleDays, statusId, prorate } =
-      updateSubscriptionPlanDto;
-
-    if (statusId) {
-      const status = await this.dataLookupRepository.findOneBy({
-        id: statusId,
-      });
-      if (!status) {
-        throw new NotFoundException(`Status with ID ${statusId} not found`);
-      }
-      plan.status = status;
-    }
-
-    plan.name = name ?? plan.name;
-    plan.description = description ?? plan.description;
-    plan.price = price ?? plan.price;
-    plan.billingCycleDays = billingCycleDays ?? plan.billingCycleDays;
-    plan.prorate = prorate !== undefined ? prorate : plan.prorate;
-
-    return this.subscriptionPlanRepository.save(plan);
-  }
-
-  /**
-   * Deletes a subscription plan by its ID.
-   *
-   * @param id - The ID of the subscription plan to delete.
-   * @returns A promise that resolves when the subscription plan is deleted.
-   */
-  deleteSubscriptionPlan(id: string): Promise<void> {
-    return this.destroy(id);
+      return manager.save(CustomerSubscription, subscription);
   }
 }

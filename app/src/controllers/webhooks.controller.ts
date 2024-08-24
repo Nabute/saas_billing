@@ -9,11 +9,16 @@ import { StripeService } from '../services/stripe.service';
 import { PaymentService } from '../services/payment.service';
 import { PaymentMethodCode } from '../utils/enums';
 import Stripe from 'stripe';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ConfigService } from '@nestjs/config';
+
+const config = new ConfigService();
 
 /**
  * Controller to handle incoming webhooks from various services.
  */
-@Controller('webhooks')
+@ApiTags('Payment Webhooks')
+@Controller({ path: 'webhooks', version: config.get('API_VERSION') })
 export class WebhooksController {
   constructor(
     private readonly stripeService: StripeService,
@@ -28,6 +33,7 @@ export class WebhooksController {
    * @returns Acknowledgment of the event receipt.
    * @throws BadRequestException if the event cannot be verified.
    */
+  @ApiOperation({ summary: 'Stripe payment webhook handler' })
   @Post('stripe')
   async handleStripeWebhook(
     @Body() payload: any,

@@ -1,68 +1,85 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { NotFoundException } from '@nestjs/common';
-import { Repository } from 'typeorm';
+import { Repository, EntityManager } from 'typeorm';
 import { DataLookupService } from '../../src/services/data-lookup.service';
 import { DataLookup } from '../../src/entities/data-lookup.entity';
-import { CreateDataLookupDto } from 'src/dtos/core.dto';
+import { CreateDataLookupDto } from '../../src/dtos/core.dto';
 
 describe('DataLookupService', () => {
     let service: DataLookupService;
     let repository: jest.Mocked<Repository<DataLookup>>;
+    let entityManager: jest.Mocked<EntityManager>;
 
     beforeEach(async () => {
+        repository = {
+            count: jest.fn(),
+            create: jest.fn(),
+            save: jest.fn(),
+            find: jest.fn(),
+            findOneBy: jest.fn(),
+        } as unknown as jest.Mocked<Repository<DataLookup>>;
+
+        entityManager = {
+            count: jest.fn(),
+            findOne: jest.fn(),
+            findOneBy: jest.fn(),
+            find: jest.fn(),
+            save: jest.fn(),
+            create: jest.fn(),
+            delete: jest.fn(),
+        } as unknown as jest.Mocked<EntityManager>;
+
         const module: TestingModule = await Test.createTestingModule({
             providers: [
                 DataLookupService,
                 {
                     provide: getRepositoryToken(DataLookup),
-                    useValue: {
-                        count: jest.fn(),
-                        create: jest.fn(),
-                        save: jest.fn(),
-                        find: jest.fn(),
-                        findOneBy: jest.fn(),
-                    },
+                    useValue: repository,
+                },
+                {
+                    provide: EntityManager,
+                    useValue: entityManager,
                 },
             ],
         }).compile();
 
         service = module.get<DataLookupService>(DataLookupService);
-        repository = module.get<jest.Mocked<Repository<DataLookup>>>(getRepositoryToken(DataLookup));
     });
 
     describe('existsByValue', () => {
         it('should return true if the value exists', async () => {
-            repository.count.mockResolvedValue(1);
+            entityManager.count.mockResolvedValue(1);
 
-            const result = await service.existsByValue('some-value');
+            const result = await service.existsByValue('some-value', entityManager);
 
             expect(result).toBe(true);
-            expect(repository.count).toHaveBeenCalledWith({ where: { value: 'some-value' } });
+            expect(entityManager.count).toHaveBeenCalledWith(DataLookup, { where: { value: 'some-value' } });
         });
 
         it('should return false if the value does not exist', async () => {
-            repository.count.mockResolvedValue(0);
+            entityManager.count.mockResolvedValue(0);
 
-            const result = await service.existsByValue('some-value');
+            const result = await service.existsByValue('some-value', entityManager);
 
             expect(result).toBe(false);
-            expect(repository.count).toHaveBeenCalledWith({ where: { value: 'some-value' } });
+            expect(entityManager.count).toHaveBeenCalledWith(DataLookup, { where: { value: 'some-value' } });
         });
     });
+
 
     describe('create', () => {
         it('should create and save a DataLookup entity', async () => {
             const createDto: CreateDataLookupDto = { value: 'some-value', type: 'some-type' };
             const mockEntity = { id: '1', ...createDto } as DataLookup;
 
-            repository.create.mockReturnValue(mockEntity);
-            repository.save.mockResolvedValue(mockEntity);
+            entityManager.create.mockReturnValue(mockEntity as any);
+            entityManager.save.mockResolvedValue(mockEntity);
 
-            const result = await service.create(createDto);
+            const result = await service.create(createDto, entityManager);
 
-            expect(repository.create).toHaveBeenCalledWith(createDto);
-            expect(repository.save).toHaveBeenCalledWith(mockEntity);
+            expect(entityManager.create).toHaveBeenCalledWith(DataLookup, createDto);
+            expect(entityManager.save).toHaveBeenCalledWith(DataLookup, mockEntity);
             expect(result).toBe(mockEntity);
         });
     });
@@ -75,47 +92,53 @@ describe('DataLookupService', () => {
             ];
             const mockEntities = createDtos.map((dto, index) => ({ id: String(index + 1), ...dto } as DataLookup));
 
-            repository.create.mockImplementation(dto => mockEntities.find(e => e.value === dto.value));
-            repository.save.mockImplementation(entity => Promise.resolve(entity as DataLookup));
+            createDtos.forEach((dto, index) => {
+                entityManager.create.mockReturnValueOnce(mockEntities[index] as any);
+            });
 
-            const result = await service.createBulk(createDtos);
+            entityManager.save.mockResolvedValue(mockEntities);
+
+            const result = await service.createBulk(createDtos, entityManager);
 
             expect(result).toEqual(mockEntities);
-            expect(repository.create).toHaveBeenCalledTimes(createDtos.length);
-            expect(repository.save).toHaveBeenCalledTimes(1);
+            expect(entityManager.create).toHaveBeenCalledTimes(createDtos.length);
+            createDtos.forEach(dto => {
+                expect(entityManager.create).toHaveBeenCalledWith(DataLookup, dto);
+            });
+            expect(entityManager.save).toHaveBeenCalledWith(DataLookup, mockEntities);
         });
     });
 
     describe('findAll', () => {
         it('should return an array of DataLookup entities', async () => {
             const mockEntities = [{ id: '1', value: 'value1', type: 'type1' } as DataLookup];
-            repository.find.mockResolvedValue(mockEntities);
+            entityManager.find.mockResolvedValue(mockEntities);
 
-            const result = await service.findAll();
+            const result = await service.findAll(entityManager);
 
             expect(result).toBe(mockEntities);
-            expect(repository.find).toHaveBeenCalled();
+            expect(entityManager.find).toHaveBeenCalledWith(DataLookup);
         });
     });
 
     describe('findOne', () => {
         it('should return a DataLookup entity if found', async () => {
             const mockEntity = { id: '1', value: 'value1', type: 'type1' } as DataLookup;
-            repository.findOneBy.mockResolvedValue(mockEntity);
+            entityManager.findOneBy.mockResolvedValue(mockEntity);
 
-            const result = await service.findOne('1');
+            const result = await service.findOne('1', entityManager);
 
             expect(result).toBe(mockEntity);
-            expect(repository.findOneBy).toHaveBeenCalledWith({ id: '1' });
+            expect(entityManager.findOneBy).toHaveBeenCalledWith(DataLookup, { id: '1' });
         });
 
         it('should throw NotFoundException if the entity is not found', async () => {
-            repository.findOneBy.mockResolvedValue(null);
+            entityManager.findOneBy.mockResolvedValue(null);
 
-            await expect(service.findOne('1')).rejects.toThrow(
+            await expect(service.findOne('1', entityManager)).rejects.toThrow(
                 new NotFoundException(`Data Lookup with ID 1 not found`),
             );
-            expect(repository.findOneBy).toHaveBeenCalledWith({ id: '1' });
+            expect(entityManager.findOneBy).toHaveBeenCalledWith(DataLookup, { id: '1' });
         });
     });
 });
