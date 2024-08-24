@@ -27,6 +27,6 @@ export class CustomerSubscription extends BaseEntity {
   @Column({ type: 'timestamp', nullable: true })
   nextRetry: Date;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: 'timestamp', nullable: false })
   nextBillingDate: Date;
 }

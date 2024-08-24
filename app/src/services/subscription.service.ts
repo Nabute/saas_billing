@@ -1,4 +1,4 @@
-import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { CustomerSubscription } from '../entities/customer.entity';
@@ -17,8 +17,6 @@ import {
   SubscriptionStatus,
 } from '../utils/enums';
 import { GenericService } from './base.service';
-import { BillingService } from './billing.service';
-import { PaymentService } from './payment.service';
 
 @Injectable()
 export class SubscriptionService extends GenericService<SubscriptionPlan> {
@@ -31,8 +29,6 @@ export class SubscriptionService extends GenericService<SubscriptionPlan> {
     private readonly subscriptionPlanRepository: Repository<SubscriptionPlan>,
     @InjectRepository(DataLookup)
     private readonly dataLookupRepository: Repository<DataLookup>,
-    private readonly billingService: BillingService,
-    private readonly paymentService: PaymentService,
     dataSource: DataSource,
   ) {
     super(SubscriptionPlan, dataSource);
@@ -50,54 +46,41 @@ export class SubscriptionService extends GenericService<SubscriptionPlan> {
   ): Promise<CustomerSubscription> {
     const { userId, subscriptionPlanId } = createSubscriptionDto;
 
-    const queryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
-
-    try {
-      const user = await queryRunner.manager.findOne(this.userRepository.target, { where: { id: userId } });
-      if (!user) {
-        throw new NotFoundException(`User with ID ${userId} not found`);
-      }
-
-      const subscriptionPlan = await queryRunner.manager.findOne(this.subscriptionPlanRepository.target, {
-        where: { id: subscriptionPlanId, status: { value: SubscriptionPlanState.ACTIVE } }
-      });
-      if (!subscriptionPlan) {
-        throw new NotFoundException(`Subscription plan with ID ${subscriptionPlanId} not found.`);
-      }
-
-      const subscriptionStatus = await queryRunner.manager.findOne(this.dataLookupRepository.target, {
-        where: { value: SubscriptionStatus.PENDING },
-      });
-      if (!subscriptionStatus) {
-        throw new NotFoundException(`Unable to get default subscription status. Please load fixtures`);
-      }
-
-      const startDate = new Date();
-
-      const newSubscription = this.customerSubscriptionRepository.create({
-        user,
-        subscriptionPlan,
-        subscriptionStatus,
-        endDate: null,
-        startDate,
-      });
-
-      await queryRunner.manager.save(newSubscription);
-
-      // Create and save invoice within the same transaction
-      const invoice = await this.billingService.createInvoiceForSubscription(newSubscription, queryRunner.manager);
-
-      await queryRunner.commitTransaction();
-      return { ...newSubscription, invoice } as unknown as CustomerSubscription;
-
-    } catch (error) {
-      await queryRunner.rollbackTransaction();
-      throw new InternalServerErrorException('Transaction failed. All operations rolled back.', error.message);
-    } finally {
-      await queryRunner.release();
+    const user = await this.userRepository.findOneBy({ id: userId });
+    if (!user) {
+      throw new NotFoundException(`User with ID ${userId} not found`);
     }
+
+    const subscriptionPlan = await this.subscriptionPlanRepository.findOneBy({
+      id: subscriptionPlanId,
+    });
+    if (!subscriptionPlan) {
+      throw new NotFoundException(
+        `Subscription plan with ID ${subscriptionPlanId} not found`,
+      );
+    }
+
+    const subscriptionStatus = await this.dataLookupRepository.findOneBy({
+      value: SubscriptionStatus.PENDING,
+    });
+    if (!subscriptionStatus) {
+      throw new NotFoundException(
+        `Unable to get default subscription status. Please load fixtures`,
+      );
+    }
+
+    const newSubscription = this.customerSubscriptionRepository.create({
+      user,
+      subscriptionPlan,
+      subscriptionStatus,
+      endDate: null,
+      startDate: Date.now(),
+      nextBillingDate: new Date(
+        Date.now() + subscriptionPlan.billingCycleDays * 24 * 60 * 60 * 1000,
+      ).getTime(),
+    });
+
+    return this.customerSubscriptionRepository.save(newSubscription);
   }
 
   /**
@@ -110,8 +93,13 @@ export class SubscriptionService extends GenericService<SubscriptionPlan> {
   async getCustomerSubscriptions(
     userId: string,
   ): Promise<CustomerSubscription[]> {
+    const user = await this.userRepository.findOneBy({ id: userId });
+    if (!user) {
+      throw new NotFoundException(`User with ID ${userId} not found`);
+    }
+
     return this.customerSubscriptionRepository.find({
-      where: { user: { id: userId } },
+      where: { user },
       relations: ['subscriptionPlan', 'subscriptionStatus'],
     });
   }
