@@ -1,14 +1,21 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { SystemSettingController } from '../../src/controllers/core.controller';
+import { SystemSettingController } from '../../src/controllers/system-setting.controller';
 import { SystemSettingService } from '../../src/services/setting.service';
 import { CreateSystemSettingDto, UpdateSystemSettingDto, ResetSystemSettingDto } from '../../src/dtos/settings.dto';
 import { SystemSetting } from '../../src/entities/system-settings.entity';
+import { EntityManager } from 'typeorm';
 
 describe('SystemSettingController', () => {
     let controller: SystemSettingController;
     let service: SystemSettingService;
+    let entityManager: jest.Mocked<EntityManager>;
 
     beforeEach(async () => {
+        entityManager = {
+            findOne: jest.fn(),
+            save: jest.fn(),
+        } as unknown as jest.Mocked<EntityManager>;
+
         const module: TestingModule = await Test.createTestingModule({
             controllers: [SystemSettingController],
             providers: [
@@ -23,6 +30,10 @@ describe('SystemSettingController', () => {
                         resetSetting: jest.fn(),
                     },
                 },
+                {
+                    provide: EntityManager,
+                    useValue: entityManager,
+                },
             ],
         }).compile();
 
@@ -36,14 +47,14 @@ describe('SystemSettingController', () => {
 
     describe('create', () => {
         it('should create a new system setting', async () => {
-            const createSystemSettingDto: CreateSystemSettingDto = { code: 'test', defaultValue: 'value' } as CreateSystemSettingDto;
+            const createSystemSettingDto: CreateSystemSettingDto = { name: "Test Setting", code: 'test', defaultValue: 'value' } as CreateSystemSettingDto;
             const systemSetting = { id: '1', ...createSystemSettingDto } as SystemSetting;
 
             jest.spyOn(service, 'create').mockResolvedValue(systemSetting);
 
-            const result = await controller.create(createSystemSettingDto);
+            const result = await controller.create(createSystemSettingDto, { transactionManager: entityManager });
             expect(result).toEqual(systemSetting);
-            expect(service.create).toHaveBeenCalledWith(createSystemSettingDto);
+            expect(service.create).toHaveBeenCalledWith(createSystemSettingDto, entityManager);
         });
     });
 
@@ -53,7 +64,7 @@ describe('SystemSettingController', () => {
 
             jest.spyOn(service, 'findAll').mockResolvedValue(systemSettings);
 
-            const result = await controller.findAll();
+            const result = await controller.findAll(entityManager);
             expect(result).toEqual(systemSettings);
             expect(service.findAll).toHaveBeenCalled();
         });
@@ -65,9 +76,9 @@ describe('SystemSettingController', () => {
 
             jest.spyOn(service, 'findOne').mockResolvedValue(systemSetting);
 
-            const result = await controller.findOne('1');
+            const result = await controller.findOne('1', { transactionManager: entityManager });
             expect(result).toEqual(systemSetting);
-            expect(service.findOne).toHaveBeenCalledWith('1');
+            expect(service.findOne).toHaveBeenCalledWith('1', entityManager);
         });
     });
 
@@ -78,9 +89,9 @@ describe('SystemSettingController', () => {
 
             jest.spyOn(service, 'update').mockResolvedValue(systemSetting);
 
-            const result = await controller.update('1', updateSystemSettingDto);
+            const result = await controller.update('1', updateSystemSettingDto, { transactionManager: entityManager });
             expect(result).toEqual(systemSetting);
-            expect(service.update).toHaveBeenCalledWith('1', updateSystemSettingDto);
+            expect(service.update).toHaveBeenCalledWith('1', updateSystemSettingDto, entityManager);
         });
     });
 
@@ -88,9 +99,9 @@ describe('SystemSettingController', () => {
         it('should delete a system setting by ID', async () => {
             jest.spyOn(service, 'remove').mockResolvedValue(undefined);
 
-            const result = await controller.remove('1');
+            const result = await controller.remove('1', { transactionManager: entityManager });
             expect(result).toBeUndefined();
-            expect(service.remove).toHaveBeenCalledWith('1');
+            expect(service.remove).toHaveBeenCalledWith('1', entityManager);
         });
     });
 
@@ -101,9 +112,9 @@ describe('SystemSettingController', () => {
 
             jest.spyOn(service, 'resetSetting').mockResolvedValue(systemSetting);
 
-            const result = await controller.resetSetting(resetSystemSettingDto);
+            const result = await controller.resetSetting(resetSystemSettingDto, { transactionManager: entityManager });
             expect(result).toEqual(systemSetting);
-            expect(service.resetSetting).toHaveBeenCalledWith('test');
+            expect(service.resetSetting).toHaveBeenCalledWith(resetSystemSettingDto.code, entityManager);
         });
     });
 });

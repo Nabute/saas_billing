@@ -16,7 +16,7 @@ import { ConfigService } from '@nestjs/config';
 /**
  * Authentication controller that handles user registration, login, and profile retrieval.
  */
-@ApiTags('auth')
+@ApiTags('Authentication')
 @Controller({ path: 'auth', version: new ConfigService().get('API_VERSION') })
 export class AuthController {
   constructor(private readonly authService: AuthService) {}

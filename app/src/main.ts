@@ -6,6 +6,8 @@ import { AllExceptionsFilter } from './exceptions/all-exceptions.filter';
 import { DatabaseExceptionFilter } from './exceptions/database-exception.filter';
 import { HttpExceptionFilter } from './exceptions/http-exception.filter';
 import { ValidationExceptionFilter } from './exceptions/validation-exception.filter';
+import { DataSource } from 'typeorm';
+import { TransactionInterceptor } from './interceptors/transaction.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -26,6 +28,12 @@ async function bootstrap() {
     new ValidationExceptionFilter(),
     new DatabaseExceptionFilter(),
   );
+
+  // Retrieve the DataSource instance from the NestJS container
+  const dataSource = app.get(DataSource);
+
+  // Apply the TransactionInterceptor globally
+  app.useGlobalInterceptors(new TransactionInterceptor(dataSource));
 
   // Swagger configuration
   const config = new DocumentBuilder()

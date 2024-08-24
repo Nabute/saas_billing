@@ -1,14 +1,21 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { DataLookupController } from '../../src/controllers/core.controller';
+import { DataLookupController } from '../../src/controllers/data-lookup.controller';
 import { DataLookupService } from '../../src/services/data-lookup.service';
 import { CreateDataLookupDto } from '../../src/dtos/core.dto';
-import { DataLookup } from '@app/entities/data-lookup.entity';
+import { DataLookup } from '../../src/entities/data-lookup.entity';  // Adjust the import path as needed
+import { EntityManager } from 'typeorm';
 
 describe('DataLookupController', () => {
     let controller: DataLookupController;
     let service: DataLookupService;
+    let entityManager: jest.Mocked<EntityManager>;
 
     beforeEach(async () => {
+        entityManager = {
+            findOne: jest.fn(),
+            save: jest.fn(),
+        } as unknown as jest.Mocked<EntityManager>;
+
         const module: TestingModule = await Test.createTestingModule({
             controllers: [DataLookupController],
             providers: [
@@ -20,6 +27,10 @@ describe('DataLookupController', () => {
                         findAll: jest.fn(),
                         findOne: jest.fn(),
                     },
+                },
+                {
+                    provide: EntityManager,
+                    useValue: entityManager,
                 },
             ],
         }).compile();
@@ -39,9 +50,9 @@ describe('DataLookupController', () => {
 
             jest.spyOn(service, 'create').mockResolvedValue(dataLookup);
 
-            const result = await controller.create(createDataLookupDto);
+            const result = await controller.create(createDataLookupDto, { transactionManager: entityManager });
             expect(result).toEqual(dataLookup);
-            expect(service.create).toHaveBeenCalledWith(createDataLookupDto);
+            expect(service.create).toHaveBeenCalledWith(createDataLookupDto, entityManager);
         });
     });
 
@@ -58,9 +69,9 @@ describe('DataLookupController', () => {
 
             jest.spyOn(service, 'createBulk').mockResolvedValue(dataLookups);
 
-            const result = await controller.createBulk(createDataLookupDtos);
+            const result = await controller.createBulk(createDataLookupDtos, { transactionManager: entityManager });
             expect(result).toEqual(dataLookups);
-            expect(service.createBulk).toHaveBeenCalledWith(createDataLookupDtos);
+            expect(service.createBulk).toHaveBeenCalledWith(createDataLookupDtos, entityManager);
         });
     });
 
@@ -70,7 +81,7 @@ describe('DataLookupController', () => {
 
             jest.spyOn(service, 'findAll').mockResolvedValue(dataLookups);
 
-            const result = await controller.findAll();
+            const result = await controller.findAll(entityManager);
             expect(result).toEqual(dataLookups);
             expect(service.findAll).toHaveBeenCalled();
         });
@@ -82,9 +93,9 @@ describe('DataLookupController', () => {
 
             jest.spyOn(service, 'findOne').mockResolvedValue(dataLookup);
 
-            const result = await controller.findOne('1');
+            const result = await controller.findOne('1', { transactionManager: entityManager });
             expect(result).toEqual(dataLookup);
-            expect(service.findOne).toHaveBeenCalledWith('1');
+            expect(service.findOne).toHaveBeenCalledWith('1', entityManager);
         });
     });
 });
