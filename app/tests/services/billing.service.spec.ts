@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BillingService } from '../../src/services/billing.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, EntityManager } from 'typeorm';
 import { CustomerSubscription } from '../../src/entities/customer.entity';
 import { Invoice } from '../../src/entities/invoice.entity';
 import { DataLookup } from '../../src/entities/data-lookup.entity';
@@ -20,8 +20,15 @@ describe('BillingService', () => {
     let subscriptionPlanRepository: jest.Mocked<Repository<SubscriptionPlan>>;
     let billingQueue: jest.Mocked<Queue>;
     let notificationsService: jest.Mocked<NotificationsService>;
+    let manager: jest.Mocked<EntityManager>;
 
     beforeEach(async () => {
+        manager = {
+            create: jest.fn(),
+            save: jest.fn(),
+            findOne: jest.fn(),
+        } as unknown as jest.Mocked<EntityManager>;
+
         const module: TestingModule = await Test.createTestingModule({
             providers: [
                 BillingService,
@@ -111,13 +118,14 @@ describe('BillingService', () => {
             const mockPendingStatus = { value: InvoiceStatus.PENDING } as DataLookup;
             const mockInvoice = { id: 'invoice1' } as Invoice;
 
-            dataLookupRepository.findOne.mockResolvedValue(mockPendingStatus);
-            invoiceRepository.create.mockReturnValue(mockInvoice);
-            invoiceRepository.save.mockResolvedValue(mockInvoice);
+            manager.findOne.mockResolvedValue(mockPendingStatus);
+            manager.create.mockReturnValue(mockInvoice as any);
+            manager.save.mockResolvedValue(mockInvoice);
 
-            await service.createInvoiceForSubscription(mockSubscription);
+            await service.createInvoiceForSubscription(mockSubscription, manager);
 
-            expect(invoiceRepository.create).toHaveBeenCalledWith({
+            expect(manager.create).toHaveBeenCalledWith(Invoice, {
+                code: expect.any(String),
                 customerId: 'user1',
                 amount: 100,
                 status: mockPendingStatus,
@@ -125,9 +133,9 @@ describe('BillingService', () => {
                 subscription: mockSubscription,
             });
 
-            expect(invoiceRepository.save).toHaveBeenCalledWith(mockInvoice);
+            expect(manager.save).toHaveBeenCalledWith(Invoice, mockInvoice);
             expect(notificationsService.sendInvoiceGeneratedEmail).toHaveBeenCalledWith('user1@example.com', 'invoice1');
-            expect(customerSubscriptionRepository.save).toHaveBeenCalledWith({
+            expect(manager.save).toHaveBeenCalledWith(CustomerSubscription, {
                 ...mockSubscription,
                 nextBillingDate: expect.any(Date),
             });

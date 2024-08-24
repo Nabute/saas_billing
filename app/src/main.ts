@@ -6,6 +6,7 @@ import { AllExceptionsFilter } from './exceptions/all-exceptions.filter';
 import { DatabaseExceptionFilter } from './exceptions/database-exception.filter';
 import { HttpExceptionFilter } from './exceptions/http-exception.filter';
 import { ValidationExceptionFilter } from './exceptions/validation-exception.filter';
+import { NotFoundExceptionFilter } from './exceptions/not-found-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -25,6 +26,7 @@ async function bootstrap() {
     new AllExceptionsFilter(),
     new ValidationExceptionFilter(),
     new DatabaseExceptionFilter(),
+    new NotFoundExceptionFilter()
   );
 
   // Swagger configuration

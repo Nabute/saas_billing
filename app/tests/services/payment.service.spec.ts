@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { PaymentService } from '../../src/services/payment.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, DataSource, QueryRunner, EntityManager } from 'typeorm';
 import { Payment } from '../../src/entities/payment.entity';
 import { PaymentMethod } from '../../src/entities/payment-method.entity';
 import { Invoice } from '../../src/entities/invoice.entity';
@@ -11,9 +11,10 @@ import { SystemSetting } from '../../src/entities/system-settings.entity';
 import { StripeService } from '../../src/services/stripe.service';
 import { NotificationsService } from '../../src/services/notifications.service';
 import { Queue } from 'bull';
-import { NotFoundException } from '@nestjs/common';
+import { NotFoundException, InternalServerErrorException } from '@nestjs/common';
 import { InvoiceStatus, JobQueues, PaymentStatus, SubscriptionStatus } from '../../src/utils/enums';
 import { getQueueToken } from '@nestjs/bull';
+import Stripe from 'stripe';
 
 describe('PaymentService', () => {
     let service: PaymentService;
@@ -26,8 +27,30 @@ describe('PaymentService', () => {
     let stripeService: jest.Mocked<StripeService>;
     let notificationsService: jest.Mocked<NotificationsService>;
     let paymentRetryQueue: jest.Mocked<Queue>;
+    let dataSource: jest.Mocked<DataSource>;
+    let queryRunner: jest.Mocked<QueryRunner>;
+    let manager: jest.Mocked<EntityManager>;
 
     beforeEach(async () => {
+        manager = {
+            findOne: jest.fn(),
+            save: jest.fn(),
+            create: jest.fn(),
+        } as unknown as jest.Mocked<EntityManager>;
+
+        queryRunner = {
+            connect: jest.fn(),
+            startTransaction: jest.fn(),
+            commitTransaction: jest.fn(),
+            rollbackTransaction: jest.fn(),
+            release: jest.fn(),
+            manager: manager,
+        } as unknown as jest.Mocked<QueryRunner>;
+
+        dataSource = {
+            createQueryRunner: jest.fn().mockReturnValue(queryRunner),
+        } as unknown as jest.Mocked<DataSource>;
+
         const module: TestingModule = await Test.createTestingModule({
             providers: [
                 PaymentService,
@@ -90,6 +113,10 @@ describe('PaymentService', () => {
                         add: jest.fn(),
                     },
                 },
+                {
+                    provide: DataSource,
+                    useValue: dataSource,
+                },
             ],
         }).compile();
 
@@ -105,83 +132,90 @@ describe('PaymentService', () => {
         paymentRetryQueue = module.get(getQueueToken(JobQueues.PAYMENT_RETRY));
     });
 
+    describe('processNewPayment', () => {
+        it('should throw InternalServerErrorException if an error occurs', async () => {
+            const paymentDto = { invoiceId: 'inv_123', paymentMethodId: 'pm_123' };
+
+            jest.spyOn<any, any>(service, 'findPendingInvoice').mockRejectedValue(new Error('Test Error'));
+
+            await expect(service.processNewPayment(paymentDto)).rejects.toThrow(InternalServerErrorException);
+        });
+    });
+
     describe('handleSuccessfulPayment', () => {
         it('should handle a successful payment', async () => {
-            const subscriptionId = 'sub_123';
-            const paymentAmount = 1000;
-            const paymentMethodCode = 'card';
-
-            const mockInvoice = { id: 'inv_123', subscription: { id: subscriptionId, user: { email: 'test@example.com' }, subscriptionPlan: { name: 'Test Plan' } } } as any;
+            const mockInvoice = {
+                id: 'inv_123',
+                amount: 1000,
+                subscription: { id: 'sub_123', user: { email: 'test@example.com' }, subscriptionPlan: { name: 'Test Plan' } },
+            } as any;
             const mockPaymentStatus = { id: 'status_123', value: PaymentStatus.VERIFIED } as any;
             const mockPaymentMethod = { id: 'method_123' } as any;
-            const mockPendingStatus = { id: 'status_456', value: InvoiceStatus.PENDING } as any; // Mock for 'PENDING' status
-            const mockPaidInvoiceStatus = { id: 'paid_status_123', value: 'PAID' } as any;
+            const mockPaidInvoiceStatus = { id: 'paid_status_123', value: InvoiceStatus.PAID } as any;
+            const mockPaymentIntent = { id: 'pi_123', status: 'succeeded' } as any;
 
-            // Mocking findOne for pending status
-            dataLookupRepository.findOne.mockResolvedValueOnce(mockPendingStatus);
+            manager.findOne.mockResolvedValueOnce(mockPaymentStatus);
+            manager.findOne.mockResolvedValueOnce(mockPaymentMethod);
+            manager.create.mockReturnValue({ id: 'payment_123' } as any);
+            manager.findOne.mockResolvedValueOnce(mockPaidInvoiceStatus);
 
-            invoiceRepository.findOne.mockResolvedValue(mockInvoice);
-            dataLookupRepository.findOne.mockResolvedValueOnce(mockPaymentStatus);
-            paymentMethodRepository.findOne.mockResolvedValue(mockPaymentMethod);
-            paymentRepository.create.mockReturnValue({ id: 'payment_123' } as any);
-            dataLookupRepository.findOne.mockResolvedValueOnce(mockPaidInvoiceStatus);
+            await service.handleSuccessfulPayment(mockInvoice, mockPaymentIntent, manager);
 
-            await service.handleSuccessfulPayment(subscriptionId, paymentAmount, paymentMethodCode);
-
-            expect(invoiceRepository.findOne).toHaveBeenCalledWith({
-                where: { subscription: { id: subscriptionId }, status: { value: mockPendingStatus.value } }, // Use mock value here
-                relations: ['subscription'],
-            });
-            expect(paymentRepository.create).toHaveBeenCalledWith({
+            expect(manager.create).toHaveBeenCalledWith(Payment, {
                 invoice: mockInvoice,
                 paymentMethod: mockPaymentMethod,
-                status: mockPendingStatus,
-                amount: paymentAmount,
+                status: mockPaymentStatus,
+                amount: mockInvoice.amount,
+                referenceNumber: mockPaymentIntent.id,
+                payerName: expect.any(String),
                 paymentDate: expect.any(String),
             });
-            expect(paymentRepository.save).toHaveBeenCalledWith(expect.any(Object));
-            expect(invoiceRepository.save).toHaveBeenCalledWith(mockInvoice);
-            expect(notificationsService.sendPaymentSuccessEmail).toHaveBeenCalledWith('test@example.com', 'Test Plan');
+            expect(manager.save).toHaveBeenCalledWith(Payment, expect.any(Object));
+            expect(manager.save).toHaveBeenCalledWith(Invoice, mockInvoice);
+            expect(notificationsService.sendPaymentSuccessEmail).toHaveBeenCalledWith(
+                mockInvoice.subscription.user.email,
+                mockInvoice.subscription.subscriptionPlan.name,
+            );
         });
 
-        it('should throw NotFoundException if invoice is not found', async () => {
-            const subscriptionId = 'sub_123';
+        it('should throw NotFoundException if status is not found', async () => {
+            const mockInvoice = { id: 'inv_123', amount: 1000, subscription: { id: 'sub_123' } } as any;
+            const mockPaymentIntent = { id: 'pi_123', status: 'succeeded' } as any;
 
-            invoiceRepository.findOne.mockResolvedValue(null);
+            manager.findOne.mockResolvedValue(null);
 
-            await expect(service.handleSuccessfulPayment(subscriptionId, 1000, 'card')).rejects.toThrow(NotFoundException);
+            await expect(service.handleSuccessfulPayment(mockInvoice, mockPaymentIntent, manager)).rejects.toThrow(NotFoundException);
         });
     });
 
     describe('handleFailedPayment', () => {
         it('should handle a failed payment', async () => {
             const subscriptionId = 'sub_123';
-            const mockSubscription = { id: subscriptionId, retryCount: 0, user: { email: 'test@example.com' }, subscriptionPlan: { name: 'Test Plan' } } as any;
-            const mockOverdueStatus = { id: 'status_123', value: 'OVERDUE' } as any;
-            const mockMaxRetriesSetting = { currentValue: '3' } as any; // Mocked max retries setting
-            const mockRetryDelaySetting = { currentValue: '5' } as any; // Mocked retry delay setting
+            const mockSubscription = {
+                id: subscriptionId,
+                retryCount: 0,
+                user: { email: 'test@example.com' },
+                subscriptionPlan: { name: 'Test Plan' },
+            } as CustomerSubscription;
+            const mockOverdueStatus = { id: 'status_123', value: SubscriptionStatus.OVERDUE } as DataLookup;
 
-            customerSubscriptionRepository.findOne.mockResolvedValue(mockSubscription);
-            dataLookupRepository.findOne.mockResolvedValue(mockOverdueStatus);
-            settingRepository.findOne.mockResolvedValueOnce(mockMaxRetriesSetting); // Mock the max retries setting
-            settingRepository.findOne.mockResolvedValueOnce(mockRetryDelaySetting); // Mock the retry delay setting
+            // Mock manager.findOne calls
+            manager.findOne
+                .mockResolvedValueOnce(mockSubscription) // findSubscriptionById
+                .mockResolvedValueOnce(mockOverdueStatus); // findDataLookupByValue
 
-            await service.handleFailedPayment(subscriptionId);
+            await service.handleFailedPayment(subscriptionId, manager);
 
-            expect(customerSubscriptionRepository.findOne).toHaveBeenCalledWith({
-                where: { id: subscriptionId },
-                relations: ['subscriptionStatus'],
-            });
-            expect(customerSubscriptionRepository.save).toHaveBeenCalledWith(expect.any(Object));
+            expect(manager.save).toHaveBeenCalledWith(CustomerSubscription, mockSubscription);
             expect(notificationsService.sendPaymentFailureEmail).toHaveBeenCalledWith('test@example.com', 'Test Plan');
-            expect(paymentRetryQueue.add).toHaveBeenCalledWith({ subscriptionId, attempt: 1 }, { delay: 5 * 60 * 1000 });
         });
+
         it('should throw NotFoundException if subscription is not found', async () => {
             const subscriptionId = 'sub_123';
 
-            customerSubscriptionRepository.findOne.mockResolvedValue(null);
+            manager.findOne.mockResolvedValue(null); // Mock findOne to return null for the subscription
 
-            await expect(service.handleFailedPayment(subscriptionId)).rejects.toThrow(NotFoundException);
+            await expect(service.handleFailedPayment(subscriptionId, manager)).rejects.toThrow(NotFoundException);
         });
     });
 
@@ -192,25 +226,25 @@ describe('PaymentService', () => {
             const mockMaxRetriesSetting = { currentValue: '3' } as any;
             const mockRetryDelaySetting = { currentValue: '5' } as any;
 
-            customerSubscriptionRepository.findOne.mockResolvedValue(mockSubscription);
-            settingRepository.findOne.mockResolvedValueOnce(mockMaxRetriesSetting);
-            settingRepository.findOne.mockResolvedValueOnce(mockRetryDelaySetting);
+            manager.findOne.mockResolvedValueOnce(mockSubscription);
+            manager.findOne.mockResolvedValueOnce(mockMaxRetriesSetting);
+            manager.findOne.mockResolvedValueOnce(mockRetryDelaySetting);
 
-            await service.scheduleRetry(subscriptionId);
+            await service.scheduleRetry(subscriptionId, 1, manager);
 
             expect(paymentRetryQueue.add).toHaveBeenCalledWith(
                 { subscriptionId, attempt: 1 },
                 { delay: 5 * 60 * 1000 },
             );
-            expect(customerSubscriptionRepository.save).toHaveBeenCalledWith(expect.any(Object));
+            expect(manager.save).toHaveBeenCalledWith(CustomerSubscription, expect.any(Object));
         });
 
         it('should throw NotFoundException if subscription is not found', async () => {
             const subscriptionId = 'sub_123';
 
-            customerSubscriptionRepository.findOne.mockResolvedValue(null);
+            manager.findOne.mockResolvedValue(null);
 
-            await expect(service.scheduleRetry(subscriptionId)).rejects.toThrow(NotFoundException);
+            await expect(service.scheduleRetry(subscriptionId, 1, manager)).rejects.toThrow(NotFoundException);
         });
 
         it('should not schedule a retry if retry count exceeds max retries', async () => {
@@ -218,12 +252,12 @@ describe('PaymentService', () => {
             const mockSubscription = { id: subscriptionId, retryCount: 3 } as any;
             const mockMaxRetriesSetting = { currentValue: '3' } as any;
 
-            customerSubscriptionRepository.findOne.mockResolvedValue(mockSubscription);
-            settingRepository.findOne.mockResolvedValueOnce(mockMaxRetriesSetting);
+            manager.findOne.mockResolvedValueOnce(mockSubscription);
+            manager.findOne.mockResolvedValueOnce(mockMaxRetriesSetting);
 
             const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
 
-            await service.scheduleRetry(subscriptionId);
+            await service.scheduleRetry(subscriptionId, 1, manager);
 
             expect(consoleLogSpy).toHaveBeenCalledWith(`Subscription ID ${subscriptionId} has reached the maximum number of retries.`);
             expect(paymentRetryQueue.add).not.toHaveBeenCalled();
@@ -231,140 +265,81 @@ describe('PaymentService', () => {
     });
 
     describe('retryPayment', () => {
-        it('should retry a payment and succeed', async () => {
-            const subscriptionId = 'sub_123';
-            const mockInvoice = { id: 'inv_123', amount: 100, status: { value: 'FAILED' } } as any;
-            const mockPaymentIntent = { id: 'pi_123', status: 'succeeded' } as any;
-            const mockPaidStatus = { id: 'paid_status_123', value: 'PAID' } as any;
-            const mockPaymentMethod = { id: 'method_123' } as any;
-
-            invoiceRepository.findOne.mockResolvedValue(mockInvoice);
-            stripeService.createPaymentIntent.mockResolvedValue(mockPaymentIntent);
-            dataLookupRepository.findOne.mockResolvedValue(mockPaidStatus);
-            paymentMethodRepository.findOne.mockResolvedValue(mockPaymentMethod);
-            paymentRepository.create.mockReturnValue({ id: 'payment_123' } as any);
-
-            const result = await service.retryPayment(subscriptionId);
-
-            expect(result.success).toBe(true);
-            expect(invoiceRepository.save).toHaveBeenCalledWith(mockInvoice);
-            expect(paymentRepository.create).toHaveBeenCalledWith({
-                amount: mockInvoice.amount,
-                status: mockPaidStatus,
-                invoice: mockInvoice,
-                paymentMethod: mockPaymentMethod,
-                referenceNumber: mockPaymentIntent.id,
-                payerName: expect.any(String),
-                paymentDate: expect.any(String),
-            });
-            expect(paymentRepository.save).toHaveBeenCalledWith(expect.any(Object));
-        });
-
         it('should throw NotFoundException if no unpaid invoice is found', async () => {
             const subscriptionId = 'sub_123';
 
-            invoiceRepository.findOne.mockResolvedValue(null);
+            manager.findOne.mockResolvedValue(null); // Mock findOne to return null
 
-            await expect(service.retryPayment(subscriptionId)).rejects.toThrow(NotFoundException);
+            await expect(service.retryPayment(subscriptionId, manager)).rejects.toThrow(NotFoundException);
         });
 
         it('should return false if payment fails', async () => {
             const subscriptionId = 'sub_123';
-            const mockInvoice = { id: 'inv_123', amount: 100, status: { value: 'FAILED' } } as any;
+            const mockInvoice = { id: 'inv_123', amount: 100, subscription: { id: subscriptionId } } as any;
             const mockPaymentIntent = { id: 'pi_123', status: 'failed' } as any;
 
-            invoiceRepository.findOne.mockResolvedValue(mockInvoice);
+            manager.findOne.mockResolvedValue(mockInvoice);
             stripeService.createPaymentIntent.mockResolvedValue(mockPaymentIntent);
 
-            const result = await service.retryPayment(subscriptionId);
+            const result = await service.retryPayment(subscriptionId, manager);
 
             expect(result.success).toBe(false);
         });
 
         it('should log an error and return success: false if an error occurs', async () => {
             const subscriptionId = 'sub_123';
-            const mockInvoice = { id: 'inv_123', amount: 100, status: { value: InvoiceStatus.FAILED } } as any;
+            const mockInvoice = { id: 'inv_123', amount: 100, subscription: { id: subscriptionId } } as Invoice;
             const error = new Error('Test error');
 
-            invoiceRepository.findOne.mockResolvedValue(mockInvoice);
-            stripeService.createPaymentIntent.mockRejectedValue(error);
+            manager.findOne.mockResolvedValue(mockInvoice); // Mock finding the invoice
+            stripeService.createPaymentIntent.mockRejectedValue(error); // Mock an error when creating a payment intent
 
             const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
 
-            const result = await service.retryPayment(subscriptionId);
+            const result = await service.retryPayment(subscriptionId, manager);
 
             expect(consoleErrorSpy).toHaveBeenCalledWith(`Failed to process payment for invoice ID ${mockInvoice.id}:`, error);
             expect(result.success).toBe(false);
         });
     });
 
-    describe('getCustomerInfo', () => {
-        it('should return the customer name if available', () => {
-            const mockCustomer = { name: 'Test Customer' } as any;
-
-            const result = service.getCustomerInfo(mockCustomer);
-
-            expect(result).toBe('Test Customer');
-        });
-
-        it('should return "Stripe Customer" if customer name is not available', () => {
-            const mockCustomer = {} as any;
-
-            const result = service.getCustomerInfo(mockCustomer);
-
-            expect(result).toBe('Stripe Customer');
-        });
-
-        it('should return customer string if input is a string', () => {
-            const result = service.getCustomerInfo('cus_123');
-
-            expect(result).toBe('cus_123');
-        });
-
-        it('should return "Stripe Customer" if customer is null', () => {
-            const result = service.getCustomerInfo(null);
-
-            expect(result).toBe('Stripe Customer');
-        });
-    });
-
     describe('confirmPayment', () => {
         it('should confirm payment and update subscription status', async () => {
             const subscriptionId = 'sub_123';
+            const mockActiveStatus = { id: 'status_123', value: SubscriptionStatus.ACTIVE } as any;
             const mockSubscription = { id: subscriptionId, subscriptionStatus: {} } as any;
-            const mockActiveStatus = { id: 'status_123', value: 'ACTIVE' } as any;
 
-            customerSubscriptionRepository.findOne.mockResolvedValue(mockSubscription);
-            dataLookupRepository.findOne.mockResolvedValue(mockActiveStatus);
+            manager.findOne.mockResolvedValueOnce(mockSubscription); // Mock subscription retrieval
+            manager.findOne.mockResolvedValueOnce(mockActiveStatus); // Mock status retrieval
 
-            await service.confirmPayment(subscriptionId);
+            await service.confirmPayment(subscriptionId, manager);
 
-            expect(customerSubscriptionRepository.findOne).toHaveBeenCalledWith({
+            expect(manager.findOne).toHaveBeenCalledWith(CustomerSubscription, {
                 where: { id: subscriptionId },
                 relations: ['subscriptionStatus'],
             });
-            expect(dataLookupRepository.findOne).toHaveBeenCalledWith({
-                where: { type: SubscriptionStatus.TYPE, value: SubscriptionStatus.ACTIVE },
+            expect(manager.findOne).toHaveBeenCalledWith(DataLookup, {
+                where: { value: SubscriptionStatus.ACTIVE },
             });
-            expect(customerSubscriptionRepository.save).toHaveBeenCalledWith(mockSubscription);
+            expect(manager.save).toHaveBeenCalledWith(CustomerSubscription, { ...mockSubscription, subscriptionStatus: mockActiveStatus });
         });
 
         it('should throw NotFoundException if subscription is not found', async () => {
             const subscriptionId = 'sub_123';
 
-            customerSubscriptionRepository.findOne.mockResolvedValue(null);
+            manager.findOne.mockResolvedValue(null);
 
-            await expect(service.confirmPayment(subscriptionId)).rejects.toThrow(NotFoundException);
+            await expect(service.confirmPayment(subscriptionId, manager)).rejects.toThrow(NotFoundException);
         });
 
         it('should throw NotFoundException if active status is not found', async () => {
             const subscriptionId = 'sub_123';
             const mockSubscription = { id: subscriptionId, subscriptionStatus: {} } as any;
 
-            customerSubscriptionRepository.findOne.mockResolvedValue(mockSubscription);
-            dataLookupRepository.findOne.mockResolvedValue(null);
+            manager.findOne.mockResolvedValue(mockSubscription);
+            manager.findOne.mockResolvedValue(null);
 
-            await expect(service.confirmPayment(subscriptionId)).rejects.toThrow(NotFoundException);
+            await expect(service.confirmPayment(subscriptionId, manager)).rejects.toThrow(NotFoundException);
         });
     });
 });

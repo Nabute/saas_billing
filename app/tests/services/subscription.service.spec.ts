@@ -8,6 +8,8 @@ import { SubscriptionPlan } from '../../src/entities/subscription.entity';
 import { DataLookup } from '../../src/entities/data-lookup.entity';
 import { NotFoundException } from '@nestjs/common';
 import { CreateSubscriptionDto, CreateSubscriptionPlanDto, UpdateSubscriptionPlanDto, UpdateSubscriptionStatusDto } from '../../src/dtos/subscription.dto';
+import { BillingService } from '../../src/services/billing.service';
+import { PaymentService } from '../../src/services/payment.service';
 
 jest.mock('../../src/services/base.service');
 
@@ -17,9 +19,22 @@ describe('SubscriptionService', () => {
     let userRepository: jest.Mocked<Repository<User>>;
     let subscriptionPlanRepository: jest.Mocked<Repository<SubscriptionPlan>>;
     let dataLookupRepository: jest.Mocked<Repository<DataLookup>>;
+    let billingService: jest.Mocked<BillingService>;
     let dataSource: DataSource;
 
     beforeEach(async () => {
+        const mockQueryRunner = {
+            connect: jest.fn(),
+            startTransaction: jest.fn(),
+            commitTransaction: jest.fn(),
+            rollbackTransaction: jest.fn(),
+            release: jest.fn(),
+            manager: {
+                findOne: jest.fn(),
+                save: jest.fn(),
+            },
+        };
+   
         const module: TestingModule = await Test.createTestingModule({
             providers: [
                 SubscriptionService,
@@ -57,12 +72,26 @@ describe('SubscriptionService', () => {
                     },
                 },
                 {
+                    provide: BillingService,
+                    useValue: {
+                        createInvoiceForSubscription: jest.fn(),
+                    },
+                },
+                {
+                    provide: PaymentService,
+                    useValue: {
+                        processPayment: jest.fn(),
+                    },
+                },
+                {
                     provide: DataSource,
-                    useValue: {},
+                    useValue: {
+                        createQueryRunner: jest.fn().mockReturnValue(mockQueryRunner),
+                    },
                 },
             ],
         }).compile();
-
+   
         service = module.get<SubscriptionService>(SubscriptionService);
         customerSubscriptionRepository = module.get(getRepositoryToken(CustomerSubscription));
         userRepository = module.get(getRepositoryToken(User));
@@ -70,6 +99,7 @@ describe('SubscriptionService', () => {
         dataLookupRepository = module.get(getRepositoryToken(DataLookup));
         dataSource = module.get(DataSource);
     });
+   
 
     describe('createCustomerSubscription', () => {
         it('should create a new customer subscription', async () => {

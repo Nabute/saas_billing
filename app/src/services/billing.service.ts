@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 import { CustomerSubscription } from '../entities/customer.entity';
 import { Invoice } from '../entities/invoice.entity';
 import { DataLookup } from '../entities/data-lookup.entity';
@@ -9,6 +9,7 @@ import { InvoiceStatus, JobQueues, SubscriptionStatus } from '../utils/enums';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import { NotificationsService } from './notifications.service';
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class BillingService {
@@ -53,10 +54,12 @@ export class BillingService {
    */
   async createInvoiceForSubscription(
     subscription: CustomerSubscription,
-  ): Promise<void> {
-    const invoiceStatus = await this.getInvoiceStatus(InvoiceStatus.PENDING);
+    manager: EntityManager,
+  ): Promise<Invoice> {
+    const invoiceStatus = await this.getInvoiceStatus(InvoiceStatus.PENDING, manager);
 
-    const invoice = this.invoiceRepository.create({
+    const invoice = manager.create(Invoice, {
+      code: await this.generateUniqueInvoiceCode(),
       customerId: subscription.user.id,
       amount: subscription.subscriptionPlan.price,
       status: invoiceStatus,
@@ -67,7 +70,7 @@ export class BillingService {
       subscription: subscription,
     });
 
-    await this.invoiceRepository.save(invoice);
+    await manager.save(Invoice, invoice);
 
     // Send notification after invoice is generated
     await this.notificationsService.sendInvoiceGeneratedEmail(
@@ -80,7 +83,8 @@ export class BillingService {
       subscription.nextBillingDate,
       subscription.subscriptionPlan.billingCycleDays,
     );
-    await this.customerSubscriptionRepository.save(subscription);
+    await manager.save(CustomerSubscription, subscription);
+    return invoice;
   }
 
   /**
@@ -205,8 +209,8 @@ export class BillingService {
    * @param statusValue - The value of the invoice status.
    * @returns The found DataLookup entity representing the status.
    */
-  private async getInvoiceStatus(statusValue: string): Promise<DataLookup> {
-    const status = await this.dataLookupRepository.findOne({
+  private async getInvoiceStatus(statusValue: string, manager: EntityManager): Promise<DataLookup> {
+    const status = await manager.findOne(DataLookup, {
       where: { value: statusValue },
     });
     if (!status) {
@@ -255,5 +259,27 @@ export class BillingService {
       );
     }
     return plan;
+  }
+
+
+  async generateUniqueInvoiceCode(): Promise<string> {
+    let isUnique = false;
+    let newCode: string;
+
+    while (!isUnique) {
+      // Generate a new invoice code
+      const timestamp = Date.now().toString(36); // Convert timestamp to base36
+      const randomString = uuidv4().split('-')[0]; // Use part of UUID for randomness
+      newCode = `INV-${timestamp}-${randomString}`;
+
+      // Check if the code is unique in the database
+      const existingInvoice = await this.invoiceRepository.findOne({ where: { code: newCode } });
+
+      if (!existingInvoice) {
+        isUnique = true;
+      }
+    }
+
+    return newCode;
   }
 }
