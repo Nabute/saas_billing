@@ -107,7 +107,10 @@ export class SystemSettingService extends GenericService<SystemSetting> {
    * @throws NotFoundException if the system setting is not found.
    * @throws BadRequestException if the current value is already the same as the default value.
    */
-  async resetSetting(code: string, manager: EntityManager): Promise<SystemSetting> {
+  async resetSetting(
+    code: string,
+    manager: EntityManager,
+  ): Promise<SystemSetting> {
     const setting = await manager.findOne(SystemSetting, {
       where: { code },
     });

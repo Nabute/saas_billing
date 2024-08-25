@@ -92,7 +92,9 @@ export class DataLookupService {
     defaultStateType: string,
     manager?: EntityManager,
   ): Promise<DataLookup> {
-    const repo = manager ? manager.getRepository(DataLookup) : this.lookupRepository;
+    const repo = manager
+      ? manager.getRepository(DataLookup)
+      : this.lookupRepository;
     const defaultState = await repo.findOne({
       where: { type: defaultStateType, is_default: true },
     });

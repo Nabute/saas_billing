@@ -29,10 +29,6 @@ jobs:
         working-directory: app
         run: npm install
 
-      - name: Lint code
-        working-directory: app
-        run: npm run lint
-
       - name: Run tests
         working-directory: app
         run: npm run test

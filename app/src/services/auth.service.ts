@@ -4,6 +4,7 @@ import { UsersService } from './users.service';
 import { CreateUserDto, LoginDto } from '../dtos/user.dto';
 import { User } from '../entities/user.entity';
 import * as bcrypt from 'bcryptjs';
+import { EntityManager } from 'typeorm';
 
 @Injectable()
 export class AuthService {
@@ -20,12 +21,17 @@ export class AuthService {
    */
   async validateUser(
     loginDto: LoginDto,
+    manager: EntityManager,
   ): Promise<{ user: Omit<User, 'password'>; access_token: string } | null> {
-    const user = await this.usersService.findOneByEmail(loginDto.email);
+    const user = await this.usersService.findOneByEmail(
+      loginDto.email,
+      manager,
+    );
+    console.log('🚀 ~ AuthService ~ manager:', manager);
 
     if (user && (await this.verifyPassword(loginDto.password, user.password))) {
       const { password, ...userWithoutPassword } = user;
-      console.log('🚀 ~ AuthService ~ password:', password);
+      console.log('🚀 ~ AuthService ~ password:', password, manager);
       const access_token = await this.generateJwtToken(user);
       return { user: userWithoutPassword as User, access_token };
     }
@@ -38,7 +44,10 @@ export class AuthService {
    * @param user - The user object.
    * @returns A Promise that resolves to an object containing the JWT access token.
    */
-  async login(user: User): Promise<{ access_token: string }> {
+  async login(
+    user: User,
+    manager: EntityManager,
+  ): Promise<{ access_token: string }> {
     const access_token = await this.generateJwtToken(user);
     return { access_token };
   }
@@ -49,8 +58,11 @@ export class AuthService {
    * @param createUserDto - An object containing the new user's registration details.
    * @returns A Promise that resolves to the created User entity.
    */
-  async register(createUserDto: CreateUserDto): Promise<User> {
-    return await this.usersService.create(createUserDto);
+  async register(
+    createUserDto: CreateUserDto,
+    manager: EntityManager,
+  ): Promise<User> {
+    return await this.usersService.create(createUserDto, manager);
   }
 
   /**

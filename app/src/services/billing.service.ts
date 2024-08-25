@@ -1,14 +1,21 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 import { CustomerSubscription } from '../entities/customer.entity';
 import { Invoice } from '../entities/invoice.entity';
 import { DataLookup } from '../entities/data-lookup.entity';
 import { SubscriptionPlan } from '../entities/subscription.entity';
-import { InvoiceStatus, JobQueues, SubscriptionStatus } from '../utils/enums';
+import {
+  InvoiceStatus,
+  JobQueues,
+  ObjectState,
+  SubscriptionStatus,
+} from '../utils/enums';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import { NotificationsService } from './notifications.service';
+import * as dayjs from 'dayjs';
+import { DataLookupService } from './data-lookup.service';
 
 @Injectable()
 export class BillingService {
@@ -23,6 +30,7 @@ export class BillingService {
     private readonly subscriptionPlanRepository: Repository<SubscriptionPlan>,
     @InjectQueue(JobQueues.BILLING) private readonly billingQueue: Queue,
     private readonly notificationsService: NotificationsService,
+    private readonly dataLookupService: DataLookupService,
   ) {}
 
   /**
@@ -53,26 +61,39 @@ export class BillingService {
    */
   async createInvoiceForSubscription(
     subscription: CustomerSubscription,
-  ): Promise<void> {
+    manager: EntityManager,
+  ): Promise<Invoice> {
     const invoiceStatus = await this.getInvoiceStatus(InvoiceStatus.PENDING);
+    const objectDefaultState = await this.dataLookupService.getDefaultData(
+      ObjectState.TYPE,
+    );
 
-    const invoice = this.invoiceRepository.create({
+    const code = await this.generateInvoiceCode();
+    const invoice = manager.create(Invoice, {
+      code,
       customerId: subscription.user.id,
       amount: subscription.subscriptionPlan.price,
       status: invoiceStatus,
+      subscription,
+      objectState: objectDefaultState,
+      //TODO [FUTURE]: payment due date has to be configured from system settings
       paymentDueDate: this.calculateNextBillingDate(
         new Date(),
         subscription.subscriptionPlan.billingCycleDays,
       ),
-      subscription: subscription,
     });
 
-    await this.invoiceRepository.save(invoice);
+    await manager.save(Invoice, invoice);
 
     // Send notification after invoice is generated
     await this.notificationsService.sendInvoiceGeneratedEmail(
+      subscription.user.name,
       subscription.user.email,
-      invoice.id,
+      subscription.subscriptionPlan.name,
+      invoice.amount.toString(),
+      dayjs(Date.now()).format('MMMM D'),
+      this.generateBillingPeriod(Date.now(), subscription.nextBillingDate),
+      `https://media.saas.billing/subscriptions/invoices/${invoice.id}`,
     );
 
     // Update subscription's next billing date
@@ -80,7 +101,8 @@ export class BillingService {
       subscription.nextBillingDate,
       subscription.subscriptionPlan.billingCycleDays,
     );
-    await this.customerSubscriptionRepository.save(subscription);
+    await manager.save(CustomerSubscription, subscription);
+    return invoice;
   }
 
   /**
@@ -93,8 +115,12 @@ export class BillingService {
   async handleSubscriptionChange(
     subscriptionId: string,
     newPlanId: string,
+    manager: EntityManager,
   ): Promise<void> {
-    const subscription = await this.findSubscriptionById(subscriptionId);
+    const subscription = await this.findSubscriptionById(
+      subscriptionId,
+      manager,
+    );
     const newPlan = await this.findSubscriptionPlanById(newPlanId);
 
     const proratedAmount = this.calculateProratedAmount(
@@ -119,8 +145,9 @@ export class BillingService {
    */
   async getSubscriptionById(
     subscriptionId: string,
+    manager: EntityManager,
   ): Promise<CustomerSubscription> {
-    return await this.findSubscriptionById(subscriptionId);
+    return await this.findSubscriptionById(subscriptionId, manager);
   }
 
   /**
@@ -224,8 +251,9 @@ export class BillingService {
    */
   private async findSubscriptionById(
     subscriptionId: string,
+    manager: EntityManager,
   ): Promise<CustomerSubscription> {
-    const subscription = await this.customerSubscriptionRepository.findOne({
+    const subscription = await manager.findOne(CustomerSubscription, {
       where: { id: subscriptionId },
     });
     if (!subscription) {
@@ -255,5 +283,17 @@ export class BillingService {
       );
     }
     return plan;
+  }
+
+  private generateBillingPeriod(startDate, endDate) {
+    const start = dayjs(startDate).format('MMMM D'); // e.g., "July 1st"
+    const end = dayjs(endDate).format('MMMM D'); // e.g., "September 30th"
+    return `${start} to ${end}`;
+  }
+
+  private async generateInvoiceCode() {
+    const count = await this.invoiceRepository.count();
+    const paddedCount = (count + 1).toString().padStart(4, '0');
+    return `INV-${paddedCount}`;
   }
 }

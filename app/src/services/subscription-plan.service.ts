@@ -8,15 +8,15 @@ import {
   UpdateSubscriptionPlanDto,
 } from '../dtos/subscription.dto';
 import { GenericService } from './base.service';
-import { SubscriptionPlanState } from '../utils/enums';
+import { ObjectState, SubscriptionPlanState } from '../utils/enums';
+import { DataLookupService } from './data-lookup.service';
 
 @Injectable()
 export class SubscriptionPlanService extends GenericService<SubscriptionPlan> {
   constructor(
     @InjectRepository(SubscriptionPlan)
     private readonly subscriptionPlanRepository: Repository<SubscriptionPlan>,
-    @InjectRepository(DataLookup)
-    private readonly dataLookupRepository: Repository<DataLookup>,
+    private readonly dataLookupService: DataLookupService,
     dataSource: DataSource,
   ) {
     super(SubscriptionPlan, dataSource);
@@ -38,6 +38,10 @@ export class SubscriptionPlanService extends GenericService<SubscriptionPlan> {
       );
     }
 
+    const objectDefaultState = await this.dataLookupService.getDefaultData(
+      ObjectState.TYPE,
+    );
+
     const newPlan = this.subscriptionPlanRepository.create({
       name,
       description,
@@ -45,6 +49,7 @@ export class SubscriptionPlanService extends GenericService<SubscriptionPlan> {
       billingCycleDays,
       status: planDefaultState,
       prorate,
+      objectState: objectDefaultState,
     });
 
     return manager.save(SubscriptionPlan, newPlan);

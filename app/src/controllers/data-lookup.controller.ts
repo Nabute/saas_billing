@@ -1,11 +1,4 @@
-import {
-  Controller,
-  Post,
-  Body,
-  Get,
-  Param,
-  Req,
-} from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, Req } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { CreateDataLookupDto } from '../dtos/core.dto';
 import { DataLookupService } from '../services/data-lookup.service';
@@ -19,7 +12,7 @@ const config = new ConfigService();
 @ApiTags('Configurations')
 @Controller({ path: 'core/lookup-data', version: config.get('API_VERSION') })
 export class DataLookupController {
-  constructor(private readonly dataLookupService: DataLookupService) { }
+  constructor(private readonly dataLookupService: DataLookupService) {}
 
   /**
    * Creates a new data lookup entry.
@@ -30,7 +23,10 @@ export class DataLookupController {
    */
   @Post()
   @ApiOperation({ summary: 'Create a new data lookup entry' })
-  async create(@Body() createDataLookupDto: CreateDataLookupDto, @Req() req: any) {
+  async create(
+    @Body() createDataLookupDto: CreateDataLookupDto,
+    @Req() req: any,
+  ) {
     const entityManager = req.transactionManager;
     return this.dataLookupService.create(createDataLookupDto, entityManager);
   }
@@ -44,9 +40,15 @@ export class DataLookupController {
    */
   @Post('bulk')
   @ApiOperation({ summary: 'Create multiple data lookup entries in bulk' })
-  async createBulk(@Body() createDataLookupDtos: CreateDataLookupDto[], @Req() req: any) {
+  async createBulk(
+    @Body() createDataLookupDtos: CreateDataLookupDto[],
+    @Req() req: any,
+  ) {
     const entityManager = req.transactionManager;
-    return this.dataLookupService.createBulk(createDataLookupDtos, entityManager);
+    return this.dataLookupService.createBulk(
+      createDataLookupDtos,
+      entityManager,
+    );
   }
 
   /**

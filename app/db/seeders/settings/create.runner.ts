@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { config } from 'dotenv';
 import CreateSeeder from "./create.seeder";
 import { SystemSetting } from "../../../src/entities/system-settings.entity";
+import { DataLookup } from "../../../src/entities/data-lookup.entity";
 
 // Load environment variables
 config();
@@ -15,11 +16,11 @@ const configService = new ConfigService();
 const options: DataSourceOptions & SeederOptions = {
     type: "postgres",
     host: configService.get('DB_HOST'),
-    port: parseInt(configService.get('DB_PORT')),
+    port: parseInt(configService.get('DB_PORT') as string),
     username: configService.get('DB_USER'),
     password: configService.get('DB_PASSWORD'),
     database: configService.get('DB_NAME'),
-    entities: [SystemSetting],
+    entities: [SystemSetting, DataLookup],
     seeds: [CreateSeeder],
 };
 

@@ -37,7 +37,6 @@
     "migration:generate": "npm run typeorm -- migration:generate",
     "migration:run": "npm run typeorm -- migration:run",
     "migration:revert": "npm run typeorm -- migration:revert",
-    "load:fixtures": "ts-node ./node_modules/typeorm-extension/bin/cli.cjs seed:run -d db/data-source.ts",
     "seed:data-lookup": "ts-node ./db/seeders/data-lookup/create.runner.ts",
     "seed:settings": "ts-node ./db/seeders/settings/create.runner.ts"
   },
@@ -56,6 +55,7 @@
     "bull": "^4.16.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
+    "dayjs": "^1.11.13",
     "ioredis": "^5.4.1",
     "nodemailer": "^6.9.14",
     "passport": "^0.7.0",
