@@ -1,0 +1,526 @@
+{
+	"info": {
+		"_postman_id": "2ed50a4e-55af-4b0a-a7e2-bec8736d62fb",
+		"name": "SaaS Subscription Billing",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Plans",
+			"item": [
+				{
+					"name": "Create New",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Enterprise Plan\",\n  \"description\": \"The ultimate subscription plan for large organizations with extensive needs.\",\n  \"price\": 199.99,\n  \"billingCycleDays\": 365,\n  \"trialPeriodDays\": 30,\n  \"maxUsers\": 1000,\n  \"maxStorage\": 5000,\n  \"overageCharge\": 5.0,\n  \"autoRenewal\": true,\n  \"setupFee\": 499.99,\n  \"currency\": \"EUR\",\n  \"discount\": 20,\n  \"cancellationPolicy\": \"Full refund within the first 14 days\",\n  \"gracePeriodDays\": 15,\n  \"prorate\": false\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}{{api_version}}/subscription-plans",
+							"host": [
+								"{{base_url}}{{api_version}}"
+							],
+							"path": [
+								"subscription-plans"
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "Premium Plan",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"name\": \"Premium Plan\",\n  \"description\": \"This is a premium subscription plan offering advanced features.\",\n  \"price\": 49.99,\n  \"billingCycleDays\": 30,\n  \"trialPeriodDays\": 14,\n  \"statusId\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n  \"maxUsers\": 500,\n  \"maxStorage\": 1000,\n  \"overageCharge\": 2.5,\n  \"autoRenewal\": true,\n  \"setupFee\": 99.99,\n  \"currency\": \"USD\",\n  \"discount\": 15,\n  \"cancellationPolicy\": \"No refunds after 7 days\",\n  \"gracePeriodDays\": 10,\n  \"prorate\": true\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/v1/subscription-plans",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"v1",
+										"subscription-plans"
+									]
+								}
+							},
+							"status": "Created",
+							"code": 201,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "X-Powered-By",
+									"value": "Express"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Length",
+									"value": "1368"
+								},
+								{
+									"key": "ETag",
+									"value": "W/\"558-p4jmzJMLMRNhscFLttdkmtVtGuk\""
+								},
+								{
+									"key": "Date",
+									"value": "Thu, 22 Aug 2024 00:08:22 GMT"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Keep-Alive",
+									"value": "timeout=5"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"name\": \"Premium Plan\",\n    \"description\": \"This is a premium subscription plan offering advanced features.\",\n    \"price\": 49.99,\n    \"billingCycleDays\": 30,\n    \"trialPeriodDays\": 14,\n    \"maxUsers\": 500,\n    \"maxStorage\": 1000,\n    \"overageCharge\": 2.5,\n    \"autoRenewal\": true,\n    \"setupFee\": 99.99,\n    \"currency\": \"USD\",\n    \"discount\": 15,\n    \"cancellationPolicy\": \"No refunds after 7 days\",\n    \"gracePeriodDays\": 10,\n    \"prorate\": true,\n    \"objectState\": {\n        \"id\": \"e23342cb-6425-4234-9ccc-74614ed63b27\",\n        \"type\": \"object_state\",\n        \"name\": \"Active\",\n        \"value\": \"object_state_active\",\n        \"description\": \"This object is active and currently in use.\",\n        \"category\": \"OBJECT\",\n        \"note\": null,\n        \"index\": 0,\n        \"is_default\": true,\n        \"is_active\": true,\n        \"remark\": null,\n        \"createdDate\": \"2024-08-22T00:06:41.181Z\",\n        \"updatedDate\": \"2024-08-22T00:06:41.181Z\"\n    },\n    \"status\": {\n        \"id\": \"5efffaea-54a6-4bcc-be04-5ee88463fe2e\",\n        \"type\": \"subscription_plan_state\",\n        \"name\": \"Draft\",\n        \"value\": \"subscription_plan_state_draft\",\n        \"description\": \"This subscription plan is in draft status and not yet available for customers.\",\n        \"category\": \"SUBSCRIPTION_PLAN\",\n        \"note\": null,\n        \"index\": 0,\n        \"is_default\": true,\n        \"is_active\": true,\n        \"remark\": null,\n        \"createdDate\": \"2024-08-22T00:06:41.181Z\",\n        \"updatedDate\": \"2024-08-22T00:06:41.181Z\"\n    },\n    \"upgradeToPlanId\": null,\n    \"downgradeToPlanId\": null,\n    \"trialConversionPlanId\": null,\n    \"id\": \"22402695-681f-488c-af20-f974e17faeb8\",\n    \"createdDate\": \"2024-08-22T00:08:22.158Z\",\n    \"updatedDate\": \"2024-08-22T00:08:22.158Z\",\n    \"deletedDate\": null\n}"
+						},
+						{
+							"name": "Enterprise Plan",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"name\": \"Enterprise Plan\",\n  \"description\": \"The ultimate subscription plan for large organizations with extensive needs.\",\n  \"price\": 199.99,\n  \"billingCycleDays\": 365,\n  \"trialPeriodDays\": 30,\n  \"maxUsers\": 1000,\n  \"maxStorage\": 5000,\n  \"overageCharge\": 5.0,\n  \"autoRenewal\": true,\n  \"setupFee\": 499.99,\n  \"currency\": \"EUR\",\n  \"discount\": 20,\n  \"cancellationPolicy\": \"Full refund within the first 14 days\",\n  \"gracePeriodDays\": 15,\n  \"prorate\": false\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}{{api_version}}/subscriptions/plan",
+									"host": [
+										"{{base_url}}{{api_version}}"
+									],
+									"path": [
+										"subscriptions",
+										"plan"
+									]
+								}
+							},
+							"_postman_previewlanguage": null,
+							"header": null,
+							"cookie": [],
+							"body": null
+						}
+					]
+				},
+				{
+					"name": "List",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}{{api_version}}/subscription-plans",
+							"host": [
+								"{{base_url}}{{api_version}}"
+							],
+							"path": [
+								"subscription-plans"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Retrieve",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}{{api_version}}/subscription-plans/1da7ee3e-fcc7-467d-b9bd-416ad89abfc5",
+							"host": [
+								"{{base_url}}{{api_version}}"
+							],
+							"path": [
+								"subscription-plans",
+								"1da7ee3e-fcc7-467d-b9bd-416ad89abfc5"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"statusId\": \"a1fdcb74-5d0e-466b-b425-67b47c42e57d\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}{{api_version}}/subscription-plans/6734a124-dd43-4623-b2e5-6a085cabc50e",
+							"host": [
+								"{{base_url}}{{api_version}}"
+							],
+							"path": [
+								"subscription-plans",
+								"6734a124-dd43-4623-b2e5-6a085cabc50e"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}{{api_version}}/subscriptions/plan/28b8a733-0c11-48fb-9ef3-69be5ecae0ae",
+							"host": [
+								"{{base_url}}{{api_version}}"
+							],
+							"path": [
+								"subscriptions",
+								"plan",
+								"28b8a733-0c11-48fb-9ef3-69be5ecae0ae"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Subscription",
+			"item": [
+				{
+					"name": "Subscribe",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"userId\": \"15f066f6-69c8-4a20-b558-90b6967c5c13\",\n  \"subscriptionPlanId\": \"6734a124-dd43-4623-b2e5-6a085cabc50e\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}{{api_version}}/subscription/subscribe",
+							"host": [
+								"{{base_url}}{{api_version}}"
+							],
+							"path": [
+								"subscription",
+								"subscribe"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "User",
+			"item": [
+				{
+					"name": "Register",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Daniel Nigusse\",\n  \"email\": \"daniel@salla.sa\",\n  \"username\": \"danny\",\n  \"password\": \"pass1234\",\n  \"phoneNumber\": \"0911353438\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}{{api_version}}/auth/register",
+							"host": [
+								"{{base_url}}{{api_version}}"
+							],
+							"path": [
+								"auth",
+								"register"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Login",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"daniel@salla.sa\",\n  \"password\": \"pass1234\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}{{api_version}}/auth/login",
+							"host": [
+								"{{base_url}}{{api_version}}"
+							],
+							"path": [
+								"auth",
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Profile",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}{{api_version}}/auth/profile",
+							"host": [
+								"{{base_url}}{{api_version}}"
+							],
+							"path": [
+								"auth",
+								"profile"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Core",
+			"item": [
+				{
+					"name": "System Settings",
+					"item": [
+						{
+							"name": "Add Setting",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"name\": \"Payment Retry Delay in Minutes\",\n    \"code\": \"PAYMENT_RETRY_DELAY_MINUTES\",\n    \"defaultValue\": 60\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}{{api_version}}/core/settings",
+									"host": [
+										"{{base_url}}{{api_version}}"
+									],
+									"path": [
+										"core",
+										"settings"
+									]
+								}
+							},
+							"response": [
+								{
+									"name": "Payment Retry Max Retries",
+									"originalRequest": {
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n    \"name\": \"Payment Retry Max Retries\",\n    \"code\": \"PAYMENT_RETRY_MAX_RETRIES\",\n    \"defaultValue\": 5\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{base_url}}{{api_version}}/core/settings",
+											"host": [
+												"{{base_url}}{{api_version}}"
+											],
+											"path": [
+												"core",
+												"settings"
+											]
+										}
+									},
+									"_postman_previewlanguage": null,
+									"header": null,
+									"cookie": [],
+									"body": null
+								},
+								{
+									"name": "Payment Retry Delay in Minutes",
+									"originalRequest": {
+										"method": "POST",
+										"header": [],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n    \"name\": \"Payment Retry Delay in Minutes\",\n    \"code\": \"PAYMENT_RETRY_DELAY_MINUTES\",\n    \"defaultValue\": 60\n}",
+											"options": {
+												"raw": {
+													"language": "json"
+												}
+											}
+										},
+										"url": {
+											"raw": "{{base_url}}{{api_version}}/core/settings",
+											"host": [
+												"{{base_url}}{{api_version}}"
+											],
+											"path": [
+												"core",
+												"settings"
+											]
+										}
+									},
+									"_postman_previewlanguage": null,
+									"header": null,
+									"cookie": [],
+									"body": null
+								}
+							]
+						},
+						{
+							"name": "List Settings",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}{{api_version}}/core/settings",
+									"host": [
+										"{{base_url}}{{api_version}}"
+									],
+									"path": [
+										"core",
+										"settings"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Payment",
+			"item": [
+				{
+					"name": "Process",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"invoiceId\": \"1a34a454-7149-4627-a6e5-5ba2508aa3ab\",\n  \"paymentMethodId\": \"pm_card_visa\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}{{api_version}}/payments/process",
+							"host": [
+								"{{base_url}}{{api_version}}"
+							],
+							"path": [
+								"payments",
+								"process"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Add Method",
+					"request": {
+						"method": "POST",
+						"header": []
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImRhbmllbEBzYWxsYS5zYSIsInN1YiI6IjE1ZjA2NmY2LTY5YzgtNGEyMC1iNTU4LTkwYjY5NjdjNWMxMyIsImlhdCI6MTcyNDU0NDE4NiwiZXhwIjoxNzI0NTQ0MjQ2fQ.jwdfAAKCv56gUrSbdbukVmjvYNt5Qg9B3TuLdGRll6Q",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:3000",
+			"type": "default"
+		},
+		{
+			"key": "api_version",
+			"value": "/api/v1",
+			"type": "default"
+		}
+	]
+}

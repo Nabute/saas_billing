@@ -96,6 +96,7 @@ This project is a simple billing application designed for a SaaS platform that s
   - [Access the Application](#6-access-the-application)
   - [Monitor and Manage Containers](#7-monitor-and-manage-containers)
   - [Running Tests (Optional)](#8-running-tests-optional)
+- [Using the APIs](#using-the-apis)
 - [Summary](#summary)
 
 
@@ -677,5 +678,75 @@ To run tests within the Docker container:
    
    ![Entity Diagram](app/assets//images/test_coverage.png)
 
-### Summary
+
+## Using the APIs
+
+Follow the steps below to get started with testing the API using Postman.
+
+### 1. Prerequisites
+- Ensure that [Postman](https://www.postman.com/downloads/) is installed on your system.
+
+### 2. Import the Postman Collection
+1. Download the Postman collection file: [BillingAPI.postman_collection.json](./SaaS%20Subscription%20Billing.postman_collection.json).
+2. Open Postman.
+3. Click the `Import` button located in the top left corner.
+4. Choose the `File` option and select the downloaded Postman collection.
+5. The collection will be imported and available in your Postman workspace.
+
+### 3. Testing the API Endpoints
+1. Expand the imported collection to view the available API endpoints.
+2. Navigate to the `User` folder and select the `Register` request.
+3. Click `Send` to execute the request.
+4. Copy the `userId` from the response of the `Register` request.
+5. Navigate to the `Plans` folder and select the `Create` request.
+6. Use both provided examples to create two new Subscription Plans.
+7. Copy the `subscriptionPlanId` of one of the created plans.
+8. Navigate to the `Subscription` folder and select the `Subscribe` request.
+9. Update the request body with the `userId` and `subscriptionPlanId` as shown below:
+
+    ```json
+    {
+        "userId": "15f066f6-69c8-4a20-b558-90b6967c5c13",
+        "subscriptionPlanId": "6734a124-dd43-4623-b2e5-6a085cabc50e"
+    }
+    ```
+
+10. Submit the `Subscribe` request.
+
+11. Copy the `invoiceId` from the response of the `Subscribe` request.
+12. Navigate to the `Payment` folder and select the `Process` request.
+13. Replace the `invoiceId` in the request body with the new `invoiceId`. Leave the `paymentMethodId` unchanged.
+14. Submit the `Process` request. You should receive a response indicating success:
+
+    ```json
+    {
+        "success": true
+    }
+    ```
+
+Congratulations! You have successfully subscribed and processed payment for your subscription.
+
+
+### 4. Email Notifications
+
+This API uses Ethereal, a fake SMTP service, to simulate email notifications. Ethereal is primarily designed for Nodemailer and EmailEngine users, but it can be used with other applications as well. It is a free service where emails are not actually delivered but can be viewed for testing purposes.
+
+To view the simulated emails:
+1. Visit the [Ethereal website](https://ethereal.email/).
+2. Log in using the email address and password configured in the SMTP settings, which can be found in the `.env` file.
+3. Once logged in, you can review the emails that were "sent" during the testing process.
+
+Ethereal is ideal for development and testing environments where real email delivery is not required.
+
+
+## Summary
 By following these steps, you should have a fully functional environment for the SaaS Billing application, running in Docker containers. This setup ensures that the application is consistent across different environments and simplifies deployment and management of the services.
+
+
+## Thank You
+
+Thank you for the opportunity to work on this project as part of the technical screening process. I appreciate the chance to demonstrate my skills and look forward to any feedback you may have. Please feel free to reach out if you have any questions or need further clarification on any part of the project.
+
+Best regards,
+
+Daniel Nigusse
