@@ -5,6 +5,7 @@ import {
   Request,
   UseGuards,
   Get,
+  Req,
 } from '@nestjs/common';
 import { AuthService } from '../services/auth.service';
 import { CreateUserDto, LoginDto } from '../dtos/user.dto';
@@ -30,8 +31,8 @@ export class AuthController {
   @ApiOperation({ summary: 'User login' })
   @ApiResponse({ status: 200, description: 'Successful login', type: User })
   @Post('login')
-  async login(@Body() loginDto: LoginDto) {
-    return this.authService.validateUser(loginDto);
+  async login(@Body() loginDto: LoginDto, @Req() req: any) {
+    return this.authService.validateUser(loginDto, req.transactionManager);
   }
 
   /**
@@ -47,8 +48,8 @@ export class AuthController {
     type: User,
   })
   @Post('register')
-  async register(@Body() createUserDto: CreateUserDto) {
-    return this.authService.register(createUserDto);
+  async register(@Body() createUserDto: CreateUserDto, @Req() req: any) {
+    return this.authService.register(createUserDto, req.transactionManager);
   }
 
   /**

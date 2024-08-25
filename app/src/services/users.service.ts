@@ -3,13 +3,16 @@ import * as bcrypt from 'bcryptjs';
 import { User } from '../entities/user.entity';
 import { GenericService } from './base.service';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, EntityManager, Repository } from 'typeorm';
+import { ObjectState } from '@app/utils/enums';
+import { DataLookupService } from './data-lookup.service';
 
 @Injectable()
 export class UsersService extends GenericService<User> {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    private readonly dataLookupService: DataLookupService,
     dataSource: DataSource,
   ) {
     super(User, dataSource);
@@ -21,8 +24,11 @@ export class UsersService extends GenericService<User> {
    * @param email - The email address of the user to find.
    * @returns A Promise that resolves to the found User entity or undefined if not found.
    */
-  async findOneByEmail(email: string): Promise<User | undefined> {
-    return this.userRepository.findOne({ where: { email } });
+  async findOneByEmail(
+    email: string,
+    manager: EntityManager,
+  ): Promise<User | undefined> {
+    return manager.findOneBy(User, { email });
   }
 
   /**
@@ -31,8 +37,12 @@ export class UsersService extends GenericService<User> {
    * @param id - The ID of the user to find.
    * @returns A Promise that resolves to the found User entity or undefined if not found.
    */
-  async findOne(id: string): Promise<User | undefined> {
-    return this.userRepository.findOne({ where: { id } });
+  async findOne(
+    id: string,
+    manager?: EntityManager,
+  ): Promise<User | undefined> {
+    const repo = manager ? manager.getRepository(User) : this.userRepository;
+    return repo.findOne({ where: { id } });
   }
 
   /**
@@ -41,13 +51,17 @@ export class UsersService extends GenericService<User> {
    * @param user - The partial User entity containing the user data.
    * @returns A Promise that resolves to the newly created User entity.
    */
-  async create(user: Partial<User>): Promise<User> {
+  async create(user: Partial<User>, manager: EntityManager): Promise<User> {
     const hashedPassword = await this.hashPassword(user.password);
-    const newUser = this.userRepository.create({
+    const objectState = await this.dataLookupService.getDefaultData(
+      ObjectState.TYPE,
+    );
+    const newUser = manager.create(User, {
       ...user,
       password: hashedPassword,
+      objectState,
     });
-    return this.userRepository.save(newUser);
+    return manager.save(User, newUser);
   }
 
   /**

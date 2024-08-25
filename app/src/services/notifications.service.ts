@@ -67,12 +67,50 @@ export class NotificationsService {
    * @returns A Promise that resolves when the email is sent.
    */
   async sendInvoiceGeneratedEmail(
+    name: string,
     email: string,
     subscriptionPlan: string,
+    invoiceAmount: string,
+    invoiceDate: string,
+    billingPeriod: string,
+    invoiceLink: string,
   ): Promise<void> {
-    const subject = 'Invoice Generated';
-    const text = `Your invoice for ${subscriptionPlan} subscription has been generated.`;
-    const html = `<p>Your invoice for ${subscriptionPlan} subscription has been generated.</p>`;
+    const subject = 'Your Invoice is Ready!';
+
+    const text = `Dear ${name},
+  
+  Your invoice for the ${subscriptionPlan} subscription has been generated.
+  
+  Details:
+  - Subscription Plan: ${subscriptionPlan}
+  - Invoice Amount: ${invoiceAmount}
+  - Invoice Date: ${invoiceDate}
+  - Billing Period: ${billingPeriod}
+  
+  You can view and download your invoice using the following link: ${invoiceLink}.
+  
+  If you have any questions or need assistance, please contact our support team.
+  
+  Thank you for your continued business!
+  
+  Best regards,
+  The SaaS Company`;
+
+    const html = `
+      <p>Dear ${name},</p>
+      <p>Your invoice for the <strong>${subscriptionPlan}</strong> subscription has been generated.</p>
+      <p><strong>Details:</strong></p>
+      <ul>
+        <li><strong>Subscription Plan:</strong> ${subscriptionPlan}</li>
+        <li><strong>Invoice Amount:</strong> ${invoiceAmount}</li>
+        <li><strong>Invoice Date:</strong> ${invoiceDate}</li>
+        <li><strong>Billing Period:</strong> ${billingPeriod}</li>
+      </ul>
+      <p>You can view and download your invoice using the following link: <a href="${invoiceLink}">View Invoice</a>.</p>
+      <p>If you have any questions or need assistance, please contact our <a href="mailto:support@saas.com">support team</a>.</p>
+      <p>Thank you for your continued business!</p>
+      <p>Best regards,<br>The SaaS Company</p>`;
+
     await this.sendEmail(email, subject, text, html);
   }
 
@@ -81,15 +119,50 @@ export class NotificationsService {
    *
    * @param email - The recipient's email address.
    * @param subscriptionPlan - The name of the subscription plan for which the payment was successful.
+   * @param amountPaid - The amount that was successfully paid.
+   * @param transactionDate - The date of the successful payment transaction.
+   * @param invoiceLink - A link to view the invoice or transaction details.
    * @returns A Promise that resolves when the email is sent.
    */
   async sendPaymentSuccessEmail(
+    name: string,
     email: string,
     subscriptionPlan: string,
+    amountPaid: string,
+    transactionDate: string,
+    invoiceLink: string,
   ): Promise<void> {
-    const subject = 'Payment Successful';
-    const text = `Your subscription payment for ${subscriptionPlan} was successful.`;
-    const html = `<p>Your subscription payment for ${subscriptionPlan} was successful.</p>`;
+    const subject = 'Payment Confirmation - Thank You for Your Purchase!';
+
+    const text = `Dear ${name},
+
+We are pleased to inform you that your payment for the ${subscriptionPlan} subscription was successful.
+
+Payment Details:
+- Subscription Plan: ${subscriptionPlan}
+- Amount Paid: ${amountPaid}
+- Transaction Date: ${transactionDate}
+
+You can view and download your invoice using the following link: ${invoiceLink}.
+
+Thank you for your prompt payment! If you have any questions or need assistance, please don't hesitate to contact our support team.
+
+Best regards,
+The SaaS Company`;
+
+    const html = `
+    <p>Dear ${name},</p>
+    <p>We are pleased to inform you that your payment for the <strong>${subscriptionPlan}</strong> subscription was successful.</p>
+    <p><strong>Payment Details:</strong></p>
+    <ul>
+      <li><strong>Subscription Plan:</strong> ${subscriptionPlan}</li>
+      <li><strong>Amount Paid:</strong> ${amountPaid}</li>
+      <li><strong>Transaction Date:</strong> ${transactionDate}</li>
+    </ul>
+    <p>You can view and download your invoice using the following link: <a href="${invoiceLink}">View Invoice</a>.</p>
+    <p>Thank you for your prompt payment! If you have any questions or need assistance, please don't hesitate to contact our <a href="mailto:support@saas.com">support team</a>.</p>
+    <p>Best regards,<br>The SaaS Company</p>`;
+
     await this.sendEmail(email, subject, text, html);
   }
 

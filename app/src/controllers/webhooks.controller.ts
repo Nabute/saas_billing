@@ -7,33 +7,17 @@ import {
 } from '@nestjs/common';
 import { StripeService } from '../services/stripe.service';
 import { PaymentService } from '../services/payment.service';
-import { PaymentMethodCode } from '../utils/enums';
 import Stripe from 'stripe';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { ConfigService } from '@nestjs/config';
+import { DataSource } from 'typeorm';
 
-const config = new ConfigService();
-
-/**
- * Controller to handle incoming webhooks from various services.
- */
-@ApiTags('Payment Webhooks')
-@Controller({ path: 'webhooks', version: config.get('API_VERSION') })
+@Controller('webhooks')
 export class WebhooksController {
   constructor(
     private readonly stripeService: StripeService,
     private readonly paymentService: PaymentService,
+    private readonly dataSource: DataSource, // Inject DataSource for transaction management
   ) {}
 
-  /**
-   * Handles Stripe webhook events.
-   *
-   * @param payload - The raw body of the incoming Stripe webhook request.
-   * @param sig - The Stripe signature header used to verify the webhook.
-   * @returns Acknowledgment of the event receipt.
-   * @throws BadRequestException if the event cannot be verified.
-   */
-  @ApiOperation({ summary: 'Stripe payment webhook handler' })
   @Post('stripe')
   async handleStripeWebhook(
     @Body() payload: any,
@@ -52,19 +36,12 @@ export class WebhooksController {
       switch (event.type) {
         case 'checkout.session.completed':
           const session = event.data.object as Stripe.Checkout.Session;
-          await this.paymentService.handleSuccessfulPayment(
-            session.subscription as string,
-            session.amount_total,
-            PaymentMethodCode.STRIPE,
-          );
+          await this.handleCheckoutSessionCompleted(session);
           break;
         case 'invoice.payment_failed':
-          const failedSession = event.data.object as Stripe.Invoice;
-          await this.paymentService.handleFailedPayment(
-            failedSession.subscription as string,
-          );
+          const failedInvoice = event.data.object as Stripe.Invoice;
+          await this.handleInvoicePaymentFailed(failedInvoice);
           break;
-        // Handle other event types...
         default:
           console.log(`Unhandled event type ${event.type}`);
       }
@@ -76,5 +53,72 @@ export class WebhooksController {
     }
 
     return { received: true };
+  }
+
+  private async handleCheckoutSessionCompleted(
+    session: Stripe.Checkout.Session,
+  ) {
+    if (session.subscription && session.amount_total !== null) {
+      const queryRunner = this.dataSource.createQueryRunner();
+      await queryRunner.connect();
+      await queryRunner.startTransaction();
+
+      try {
+        const invoice = await this.paymentService.findInvoiceById(
+          session.metadata.invoiceId as string,
+          queryRunner.manager, // Pass the EntityManager from the QueryRunner
+        );
+
+        if (invoice) {
+          await this.paymentService.handleSuccessfulPayment(
+            invoice,
+            session.payment_intent as Stripe.PaymentIntent,
+            queryRunner.manager, // Pass the EntityManager to handleSuccessfulPayment
+          );
+          await queryRunner.commitTransaction();
+        } else {
+          console.error(
+            `Invoice not found for subscription ID: ${session.subscription}`,
+          );
+          await queryRunner.rollbackTransaction();
+        }
+      } catch (error) {
+        await queryRunner.rollbackTransaction();
+        console.error(
+          `Failed to handle checkout session completed for subscription ID ${session.subscription}:`,
+          error.message,
+        );
+        throw new BadRequestException(
+          'Failed to handle checkout session completed.',
+        );
+      } finally {
+        await queryRunner.release();
+      }
+    }
+  }
+
+  private async handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
+    if (invoice.subscription) {
+      const queryRunner = this.dataSource.createQueryRunner();
+      await queryRunner.connect();
+      await queryRunner.startTransaction();
+
+      try {
+        await this.paymentService.handleFailedPayment(
+          invoice.subscription as string,
+          queryRunner.manager,
+        );
+        await queryRunner.commitTransaction();
+      } catch (error) {
+        await queryRunner.rollbackTransaction();
+        console.error(
+          `Failed to handle failed payment for subscription ID ${invoice.subscription}:`,
+          error.message,
+        );
+        throw new BadRequestException('Failed to handle failed payment.');
+      } finally {
+        await queryRunner.release();
+      }
+    }
   }
 }

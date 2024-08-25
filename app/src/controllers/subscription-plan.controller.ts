@@ -24,7 +24,7 @@ const config = new ConfigService();
 export class SubscriptionPlanController {
   constructor(
     private readonly subscriptionPlanService: SubscriptionPlanService,
-  ) { }
+  ) {}
 
   @Post()
   @ApiOperation({ summary: 'Create a new subscription plan' })
@@ -51,7 +51,9 @@ export class SubscriptionPlanController {
     type: [SubscriptionPlan],
   })
   getSubscriptionPlans(@Req() req: any): Promise<SubscriptionPlan[]> {
-    return this.subscriptionPlanService.getSubscriptionPlans(req.transactionManager);
+    return this.subscriptionPlanService.getSubscriptionPlans(
+      req.transactionManager,
+    );
   }
 
   @Get(':id')
@@ -61,8 +63,14 @@ export class SubscriptionPlanController {
     description: 'The subscription plan details.',
     type: SubscriptionPlan,
   })
-  getSubscriptionPlanById(@Param('id') id: string, @Req() req: any): Promise<SubscriptionPlan> {
-    return this.subscriptionPlanService.getSubscriptionPlanById(id, req.transactionManager);
+  getSubscriptionPlanById(
+    @Param('id') id: string,
+    @Req() req: any,
+  ): Promise<SubscriptionPlan> {
+    return this.subscriptionPlanService.getSubscriptionPlanById(
+      id,
+      req.transactionManager,
+    );
   }
 
   @Patch(':id')
@@ -90,7 +98,13 @@ export class SubscriptionPlanController {
     status: 204,
     description: 'The subscription plan has been deleted.',
   })
-  deleteSubscriptionPlan(@Param('id') id: string, @Req() req: any): Promise<void> {
-    return this.subscriptionPlanService.deleteSubscriptionPlan(id, req.transactionManager);
+  deleteSubscriptionPlan(
+    @Param('id') id: string,
+    @Req() req: any,
+  ): Promise<void> {
+    return this.subscriptionPlanService.deleteSubscriptionPlan(
+      id,
+      req.transactionManager,
+    );
   }
 }

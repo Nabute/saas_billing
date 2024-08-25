@@ -20,9 +20,7 @@ import { AuthController } from './controllers/auth.controller';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { User } from './entities/user.entity';
 import { ScheduleModule } from '@nestjs/schedule';
-import {
-  DataLookupController,
-} from './controllers/data-lookup.controller';
+import { DataLookupController } from './controllers/data-lookup.controller';
 import { DataLookupService } from './services/data-lookup.service';
 import { SystemSettingService } from './services/setting.service';
 import { SystemSetting } from './entities/system-settings.entity';
@@ -38,6 +36,7 @@ import { CustomerSubscriptionService } from './services/subscription.service';
 import { CustomerSubscriptionController } from './controllers/subscription.controller';
 import { SystemSettingController } from './controllers/system-setting.controller';
 import { WebhooksController } from './controllers/webhooks.controller';
+import { PaymentsController } from './controllers/payment.controller';
 
 const config = new ConfigService();
 @Module({
@@ -87,6 +86,7 @@ const config = new ConfigService();
     SystemSettingController,
     DataLookupController,
     WebhooksController,
+    PaymentsController,
   ],
   providers: [
     SubscriptionPlanService,
@@ -106,5 +106,5 @@ const config = new ConfigService();
   ],
 })
 export class AppModule {
-  constructor(private dataSource: DataSource) { }
+  constructor(private dataSource: DataSource) {}
 }
